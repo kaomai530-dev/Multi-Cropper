@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>マルチクロッパー - 複数解像度対応</title>
+
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="クロッパー">
+    <meta name="theme-color" content="#1a1a2e">
+
+    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'><defs><linearGradient id='grad' x1='0%25' y1='0%25' x2='100%25' y2='100%25'><stop offset='0%25' style='stop-color:%23667eea'/><stop offset='100%25' style='stop-color:%23764ba2'/></linearGradient></defs><rect width='180' height='180' fill='%231a1a2e'/><text x='90' y='110' font-size='80' text-anchor='middle' fill='url(%23grad)'>🖼️</text></svg>">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='80' font-size='80'>🖼️</text></svg>">
+
+    <style>
+        /* 既存のスタイルを維持 */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', Meiryo, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            color: #fff;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 900px;
+            width: 100%;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        h1 { text-align: center; margin-bottom: 10px; font-size: 2em; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .subtitle { text-align: center; margin-bottom: 30px; color: #aaa; font-size: 0.9em; }
+
+        .upload-area { border: 3px dashed rgba(102, 126, 234, 0.5); border-radius: 15px; padding: 60px 20px; text-align: center; cursor: pointer; transition: all 0.3s ease; background: rgba(255, 255, 255, 0.02); margin-bottom: 30px; }
+        .upload-area:hover { border-color: #667eea; background: rgba(102, 126, 234, 0.1); }
+        .upload-icon { font-size: 3em; margin-bottom: 15px; opacity: 0.7; }
+        #fileInput { display: none; }
+
+        .preview-section { display: none; margin-top: 30px; }
+        .aspect-ratio-selector { background: rgba(255, 255, 255, 0.05); border-radius: 10px; padding: 20px; margin-bottom: 20px; }
+        .ratio-group { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+        .ratio-btn { padding: 15px 10px; background: rgba(255, 255, 255, 0.05); border: 2px solid rgba(102, 126, 234, 0.3); border-radius: 8px; color: white; cursor: pointer; transition: all 0.3s ease; text-align: center; }
+        .ratio-btn.active { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-color: transparent; }
+
+        .interactive-mode { background: rgba(255, 255, 255, 0.05); border-radius: 10px; padding: 20px; margin-bottom: 20px; text-align: center; }
+        .crop-selector-container { position: relative; display: inline-block; max-width: 100%; margin-bottom: 20px; overflow: hidden; touch-action: none; border-radius: 10px; background: #000; }
+        .crop-selector-image { max-width: 100%; height: auto; display: block; user-select: none; cursor: move; }
+        .crop-box { position: absolute; border: 3px solid #667eea; box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5); pointer-events: none; z-index: 10; }
+
+        .zoom-controls { display: flex; gap: 10px; justify-content: center; align-items: center; margin-top: 15px; }
+        .zoom-btn { background: rgba(102, 126, 234, 0.2); border: 2px solid rgba(102, 126, 234, 0.5); color: #667eea; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+
+        .preview-container { background: rgba(0, 0, 0, 0.3); border-radius: 10px; padding: 20px; margin-bottom: 20px; text-align: center; }
+        #croppedPreview { border: 2px solid rgba(102, 126, 234, 0.3); max-width: 100%; height: auto; border-radius: 8px; }
+
+        .controls { display: flex; gap: 15px; justify-content: center; flex-wrap: wrap; margin-top: 20px; }
+        button { padding: 12px 30px; border: none; border-radius: 8px; font-size: 1em; font-weight: 600; cursor: pointer; transition: all 0.3s ease; }
+        .btn-primary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
+        .btn-secondary { background: rgba(255, 255, 255, 0.1); color: white; border: 1px solid rgba(255, 255, 255, 0.2); }
+
+        /* 一括保存モーダルの新スタイル */
+        .download-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.95); z-index: 2000; justify-content: center; align-items: center; padding: 20px; }
+        .download-modal.show { display: flex; }
+        .download-modal-content { background: #1a1a2e; border-radius: 20px; padding: 25px; max-width: 800px; width: 100%; max-height: 90vh; overflow-y: auto; border: 1px solid rgba(255, 255, 255, 0.1); }
+        
+        .image-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 15px; margin: 20px 0; }
+        .grid-item { position: relative; border-radius: 10px; overflow: hidden; border: 2px solid transparent; transition: 0.3s; cursor: pointer; }
+        .grid-item.selected { border-color: #667eea; background: rgba(102, 126, 234, 0.2); }
+        .grid-item img { width: 100%; height: 100px; object-fit: cover; display: block; }
+        
+        .check-badge { position: absolute; top: 5px; right: 5px; width: 24px; height: 24px; background: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #667eea; font-size: 14px; font-weight: bold; opacity: 0; }
+        .selected .check-badge { opacity: 1; }
+
+        .modal-footer { position: sticky; bottom: -25px; background: #1a1a2e; padding: 15px 0; border-top: 1px solid rgba(255,255,255,0.1); display: flex; flex-direction: column; gap: 10px; }
+
+        @media (max-width: 768px) { .container { padding: 20px; } h1 { font-size: 1.5em; } }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>🖼️ マルチクロッパー</h1>
+    <div class="subtitle">iPhoneスクショを好きなアスペクト比に</div>
+
+    <div class="upload-area" id="uploadArea">
+        <div class="upload-icon">📱</div>
+        <div class="upload-text">画像を複数選択</div>
+        <div class="upload-hint">クリックして画像を追加</div>
+        <input type="file" id="fileInput" accept="image/*" multiple>
+    </div>
+
+    <div class="preview-section" id="previewSection">
+        <div class="aspect-ratio-selector">
+            <div class="ratio-group">
+                <button class="ratio-btn" data-ratio="2.844" data-width="2844" data-height="1000">2.844:1</button>
+                <button class="ratio-btn active" data-ratio="2.35" data-width="1920" data-height="817">2.35:1</button>
+                <button class="ratio-btn" data-ratio="1" data-width="1080" data-height="1080">1:1</button>
+            </div>
+            <div style="margin-top: 15px; text-align: center;">
+                <label style="cursor: pointer;"><input type="checkbox" id="autoRemoveBlackBars"> ✂️ 黒帯を自動カット</label>
+            </div>
+        </div>
+
+        <div class="interactive-mode">
+            <div class="crop-selector-container" id="cropSelector">
+                <div class="crop-selector-wrapper">
+                    <img id="selectorImage" class="crop-selector-image">
+                    <div class="crop-box" id="cropBox"></div>
+                </div>
+            </div>
+            <div class="zoom-controls">
+                <button class="zoom-btn" id="zoomOut">−</button>
+                <span id="zoomLevel">100%</span>
+                <button class="zoom-btn" id="zoomIn">+</button>
+                <button class="zoom-btn" id="zoomReset">⟲</button>
+            </div>
+        </div>
+
+        <div class="preview-container">
+            <img id="croppedPreview">
+            <canvas id="croppedCanvas" style="display:none;"></canvas>
+            <div class="download-hint">長押し保存 または 下の「次へ」で一括保存へ</div>
+        </div>
+
+        <div class="controls">
+            <button class="btn-primary" id="nextBtn" style="display:none;">⏭️ 確定して次へ</button>
+            <button class="btn-primary" id="finishBtn" style="display:none;">✅ 編集終了・保存へ</button>
+            <button class="btn-secondary" id="resetBtn">🔄 やり直し</button>
+        </div>
+        
+        <div id="batchProgress" style="text-align:center; margin-top:10px; color:#667eea; font-weight:bold;"></div>
+    </div>
+</div>
+
+<div class="download-modal" id="downloadModal">
+    <div class="download-modal-content">
+        <h3 style="text-align:center; color:#667eea;">📥 保存する画像を選択</h3>
+        <p style="font-size:0.8em; color:#aaa; text-align:center; margin-bottom:10px;">チェックを入れた画像を一括ダウンロードします</p>
+        
+        <div class="image-grid" id="imageGrid"></div>
+
+        <div class="modal-footer">
+            <button class="btn-primary" id="bulkDownloadAction">選択した画像をまとめて保存</button>
+            <button class="btn-secondary" id="closeModal">閉じる</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const RATIOS = {
+        '2.844': { width: 2844, height: 1000, ratio: 2.844 },
+        '2.35': { width: 1920, height: 817, ratio: 2.35 },
+        '1': { width: 1080, height: 1080, ratio: 1 }
+    };
+
+    let currentRatio = '2.35';
+    let imageQueue = [];
+    let currentImageIndex = 0;
+    let processedImages = []; // {dataURL, filename, selected: true}
+    
+    let zoomLevel = 1, imagePanX = 0, imagePanY = 0;
+    let isDragging = false, dragStartX, dragStartY, imageStartX, imageStartY;
+    let currentImageElement = null;
+
+    const fileInput = document.getElementById('fileInput');
+    const selectorImage = document.getElementById('selectorImage');
+    const croppedPreview = document.getElementById('croppedPreview');
+    const imageGrid = document.getElementById('imageGrid');
+
+    // 画像選択
+    document.getElementById('uploadArea').onclick = () => fileInput.click();
+    fileInput.onchange = (e) => {
+        if (e.target.files.length > 0) {
+            imageQueue = Array.from(e.target.files);
+            currentImageIndex = 0;
+            processedImages = [];
+            loadNextImage();
+        }
+    };
+
+    function loadNextImage() {
+        const file = imageQueue[currentImageIndex];
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const img = new Image();
+            img.onload = () => {
+                currentImageElement = img;
+                document.getElementById('previewSection').style.display = 'block';
+                setupCrop();
+                updateUI();
+            };
+            img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    }
+
+    function setupCrop() {
+        selectorImage.src = currentImageElement.src;
+        zoomLevel = 1; imagePanX = 0; imagePanY = 0;
+        updateImageTransform();
+        setTimeout(drawCrop, 100);
+    }
+
+    function drawCrop() {
+        const canvas = document.getElementById('croppedCanvas');
+        const ctx = canvas.getContext('2d');
+        const target = RATIOS[currentRatio];
+        canvas.width = target.width;
+        canvas.height = target.height;
+
+        const imgRect = selectorImage.getBoundingClientRect();
+        const boxRect = document.getElementById('cropBox').getBoundingClientRect();
+        const scale = currentImageElement.width / (imgRect.width / zoomLevel);
+
+        const sx = ((boxRect.left - imgRect.left) / zoomLevel) * scale;
+        const sy = ((boxRect.top - imgRect.top) / zoomLevel) * scale;
+        const sw = (boxRect.width / zoomLevel) * scale;
+        const sh = (boxRect.height / zoomLevel) * scale;
+
+        ctx.drawImage(currentImageElement, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
+        croppedPreview.src = canvas.toDataURL('image/png');
+    }
+
+    // 次へボタン
+    document.getElementById('nextBtn').onclick = () => {
+        saveProcessed();
+        currentImageIndex++;
+        loadNextImage();
+    };
+
+    // 終了ボタン
+    document.getElementById('finishBtn').onclick = () => {
+        saveProcessed();
+        showModal();
+    };
+
+    function saveProcessed() {
+        processedImages.push({
+            dataURL: croppedPreview.src,
+            filename: `crop_${Date.now()}.png`,
+            selected: true
+        });
+    }
+
+    function updateUI() {
+        const isLast = currentImageIndex === imageQueue.length - 1;
+        document.getElementById('nextBtn').style.display = isLast ? 'none' : 'inline-block';
+        document.getElementById('finishBtn').style.display = isLast ? 'inline-block' : 'none';
+        document.getElementById('batchProgress').textContent = `📷 ${currentImageIndex + 1} / ${imageQueue.length}`;
+        
+        // クロップ枠のサイズ調整
+        const box = document.getElementById('cropBox');
+        const container = document.getElementById('cropSelector').getBoundingClientRect();
+        const r = RATIOS[currentRatio].ratio;
+        if (container.width / container.height > r) {
+            box.style.height = '100%';
+            box.style.width = (container.height * r) + 'px';
+        } else {
+            box.style.width = '100%';
+            box.style.height = (container.width / r) + 'px';
+        }
+    }
+
+    function showModal() {
+        imageGrid.innerHTML = '';
+        processedImages.forEach((item, index) => {
+            const div = document.createElement('div');
+            div.className = `grid-item ${item.selected ? 'selected' : ''}`;
+            div.innerHTML = `<img src="${item.dataURL}"><div class="check-badge">✓</div>`;
+            div.onclick = () => {
+                item.selected = !item.selected;
+                div.classList.toggle('selected');
+            };
+            imageGrid.appendChild(div);
+        });
+        document.getElementById('downloadModal').classList.add('show');
+    }
+
+    // 一括ダウンロード実行
+    document.getElementById('bulkDownloadAction').onclick = async () => {
+        const toDownload = processedImages.filter(i => i.selected);
+        if (toDownload.length === 0) return alert('画像を選択してください');
+
+        for (const img of toDownload) {
+            const link = document.createElement('a');
+            link.href = img.dataURL;
+            link.download = img.filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            await new Promise(r => setTimeout(r, 300)); // ブラウザのブロック防止
+        }
+        alert('保存処理を開始しました。ブラウザのダウンロード許可を確認してください。');
+    };
+
+    // ズーム・ドラッグ関連 (既存ロジック)
+    function updateImageTransform() {
+        selectorImage.style.transform = `translate(${imagePanX}px, ${imagePanY}px) scale(${zoomLevel})`;
+    }
+
+    const startDrag = (e) => {
+        isDragging = true;
+        const t = e.touches ? e.touches[0] : e;
+        dragStartX = t.clientX; dragStartY = t.clientY;
+        imageStartX = imagePanX; imageStartY = imagePanY;
+    };
+    const doDrag = (e) => {
+        if (!isDragging) return;
+        const t = e.touches ? e.touches[0] : e;
+        imagePanX = imageStartX + (t.clientX - dragStartX);
+        imagePanY = imageStartY + (t.clientY - dragStartY);
+        updateImageTransform();
+        drawCrop();
+    };
+    selectorImage.onmousedown = selectorImage.ontouchstart = startDrag;
+    window.onmousemove = window.ontouchmove = doDrag;
+    window.onmouseup = window.ontouchend = () => isDragging = false;
+
+    document.getElementById('zoomIn').onclick = () => { zoomLevel += 0.1; updateImageTransform(); drawCrop(); };
+    document.getElementById('zoomOut').onclick = () => { zoomLevel = Math.max(0.5, zoomLevel - 0.1); updateImageTransform(); drawCrop(); };
+    document.getElementById('zoomReset').onclick = () => { zoomLevel = 1; imagePanX = 0; imagePanY = 0; updateImageTransform(); drawCrop(); };
+
+    document.getElementById('closeModal').onclick = () => document.getElementById('downloadModal').classList.remove('show');
+    document.getElementById('resetBtn').onclick = () => location.reload();
+
+    // 比率ボタン
+    document.querySelectorAll('.ratio-btn').forEach(btn => {
+        btn.onclick = () => {
+            document.querySelectorAll('.ratio-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            currentRatio = btn.dataset.ratio;
+            updateUI();
+            drawCrop();
+        };
+    });
+</script>
+</body>
+</html>
