@@ -1,0 +1,1606 @@
+<!DOCTYPE html>
+
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>マルチクロッパー - 複数解像度対応</title>
+
+```
+<!-- PWA設定 -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="クロッパー">
+<meta name="theme-color" content="#1a1a2e">
+
+<!-- アイコン -->
+<link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'><defs><linearGradient id='grad' x1='0%25' y1='0%25' x2='100%25' y2='100%25'><stop offset='0%25' style='stop-color:%23667eea'/><stop offset='100%25' style='stop-color:%23764ba2'/></linearGradient></defs><rect width='180' height='180' fill='%231a1a2e'/><rect x='40' y='50' width='100' height='60' rx='8' fill='none' stroke='url(%23grad)' stroke-width='6'/><line x1='40' y1='80' x2='60' y2='80' stroke='url(%23grad)' stroke-width='6' stroke-linecap='round'/><line x1='120' y1='80' x2='140' y2='80' stroke='url(%23grad)' stroke-width='6' stroke-linecap='round'/><circle cx='70' cy='75' r='8' fill='%23667eea' opacity='0.6'/><circle cx='110' cy='95' r='6' fill='%23764ba2' opacity='0.6'/><path d='M 50 120 L 70 140 L 130 100' fill='none' stroke='url(%23grad)' stroke-width='5' stroke-linecap='round' stroke-linejoin='round'/></svg>">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><defs><linearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'><stop offset='0%25' style='stop-color:%23667eea'/><stop offset='100%25' style='stop-color:%23764ba2'/></linearGradient></defs><rect width='100' height='100' fill='%231a1a2e'/><rect x='20' y='30' width='60' height='35' rx='5' fill='none' stroke='url(%23g)' stroke-width='4'/><line x1='20' y1='47' x2='30' y2='47' stroke='url(%23g)' stroke-width='4'/><line x1='70' y1='47' x2='80' y2='47' stroke='url(%23g)' stroke-width='4'/><circle cx='40' cy='43' r='5' fill='%23667eea' opacity='0.6'/><path d='M 30 70 L 40 80 L 70 60' fill='none' stroke='url(%23g)' stroke-width='3' stroke-linecap='round'/></svg>">
+
+<!-- JSZip for creating ZIP files -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+<style>
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+
+    body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', Meiryo, sans-serif;
+        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+        min-height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 0;
+        margin: 0;
+        color: #fff;
+        overflow-x: hidden;
+    }
+
+    .install-prompt {
+        position: fixed;
+        bottom: 20px;
+        left: 20px;
+        right: 20px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        padding: 15px 20px;
+        border-radius: 15px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+        display: none;
+        animation: slideUp 0.3s ease;
+        z-index: 1000;
+        color: #fff;
+    }
+
+    .install-prompt.show {
+        display: block;
+    }
+
+    .install-prompt-content {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+    }
+
+    .install-prompt-icon {
+        font-size: 2em;
+    }
+
+    .install-prompt-text {
+        flex: 1;
+    }
+
+    .install-prompt-title {
+        font-weight: 600;
+        margin-bottom: 5px;
+    }
+
+    .install-prompt-desc {
+        font-size: 0.85em;
+        opacity: 0.9;
+    }
+
+    .install-prompt-close {
+        background: rgba(255, 255, 255, 0.2);
+        border: none;
+        color: white;
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        cursor: pointer;
+        font-size: 1.2em;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    @keyframes slideUp {
+        from {
+            transform: translateY(100px);
+            opacity: 0;
+        }
+        to {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    }
+
+    .container {
+        background: rgba(255, 255, 255, 0.05);
+        backdrop-filter: blur(10px);
+        border-radius: 20px;
+        padding: 40px;
+        margin: 20px;
+        max-width: 900px;
+        width: calc(100% - 40px);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    h1 {
+        text-align: center;
+        margin-bottom: 10px;
+        font-size: 2em;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+
+    .subtitle {
+        text-align: center;
+        margin-bottom: 30px;
+        color: #aaa;
+        font-size: 0.9em;
+    }
+
+    .upload-area {
+        border: 3px dashed rgba(102, 126, 234, 0.5);
+        border-radius: 15px;
+        padding: 60px 20px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        background: rgba(255, 255, 255, 0.02);
+        margin-bottom: 30px;
+    }
+
+    .upload-area:hover {
+        border-color: #667eea;
+        background: rgba(102, 126, 234, 0.1);
+    }
+
+    .upload-area.dragover {
+        border-color: #764ba2;
+        background: rgba(118, 75, 162, 0.2);
+    }
+
+    .upload-icon {
+        font-size: 3em;
+        margin-bottom: 15px;
+        opacity: 0.7;
+    }
+
+    .upload-text {
+        font-size: 1.1em;
+        margin-bottom: 10px;
+    }
+
+    .upload-hint {
+        color: #aaa;
+        font-size: 0.85em;
+    }
+
+    #fileInput {
+        display: none;
+    }
+
+    .preview-section {
+        display: none;
+        margin-top: 30px;
+    }
+
+    .aspect-ratio-selector {
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 10px;
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+
+    .aspect-ratio-selector h3 {
+        margin-bottom: 15px;
+        font-size: 1.1em;
+        color: #667eea;
+        text-align: center;
+    }
+
+    .ratio-group {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 10px;
+    }
+
+    .ratio-btn {
+        padding: 15px 10px;
+        background: rgba(255, 255, 255, 0.05);
+        border: 2px solid rgba(102, 126, 234, 0.3);
+        border-radius: 8px;
+        color: white;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-align: center;
+    }
+
+    .ratio-btn:hover {
+        background: rgba(102, 126, 234, 0.2);
+    }
+
+    .ratio-btn.active {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-color: transparent;
+    }
+
+    .ratio-name {
+        font-weight: 600;
+        margin-bottom: 5px;
+    }
+
+    .ratio-desc {
+        font-size: 0.8em;
+        opacity: 0.8;
+    }
+
+    .preview-container {
+        background: rgba(0, 0, 0, 0.3);
+        border-radius: 10px;
+        padding: 20px;
+        margin-bottom: 20px;
+        text-align: center;
+    }
+
+    .preview-label {
+        font-size: 0.9em;
+        color: #aaa;
+        margin-bottom: 10px;
+    }
+
+    #originalPreview {
+        max-width: 100%;
+        height: auto;
+        border-radius: 8px;
+        margin-bottom: 10px;
+    }
+
+    .image-info {
+        font-size: 0.85em;
+        color: #bbb;
+        margin-top: 10px;
+    }
+
+    .controls {
+        display: flex;
+        gap: 15px;
+        justify-content: center;
+        flex-wrap: wrap;
+        margin-top: 20px;
+    }
+
+    button {
+        padding: 12px 30px;
+        border: none;
+        border-radius: 8px;
+        font-size: 1em;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-family: inherit;
+    }
+
+    .btn-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+    }
+
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+    }
+
+    .btn-secondary {
+        background: rgba(255, 255, 255, 0.1);
+        color: white;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .btn-secondary:hover {
+        background: rgba(255, 255, 255, 0.15);
+    }
+
+    button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    .download-hint {
+        text-align: center;
+        color: #667eea;
+        font-size: 0.85em;
+        margin-top: 15px;
+        padding: 10px;
+        background: rgba(102, 126, 234, 0.1);
+        border-radius: 8px;
+    }
+
+    .batch-progress {
+        margin-top: 20px;
+        text-align: center;
+    }
+
+    .progress-text {
+        color: #667eea;
+        font-size: 1.1em;
+        margin-bottom: 10px;
+        font-weight: 600;
+    }
+
+    .progress-bar {
+        width: 100%;
+        height: 8px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 4px;
+        overflow: hidden;
+    }
+
+    .progress-fill {
+        height: 100%;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        transition: width 0.3s ease;
+        width: 0%;
+    }
+
+    .crop-selector-container {
+        position: relative;
+        display: inline-block;
+        max-width: 100%;
+        margin-bottom: 20px;
+        overflow: hidden;
+        touch-action: none;
+        border-radius: 10px;
+        background: #000;
+    }
+
+    .crop-selector-wrapper {
+        position: relative;
+        width: 100%;
+        height: 100%;
+    }
+
+    .crop-selector-image {
+        max-width: 100%;
+        height: auto;
+        display: block;
+        user-select: none;
+        -webkit-user-select: none;
+        transform-origin: center center;
+        transition: transform 0.1s ease-out;
+        cursor: move;
+    }
+
+    .crop-box {
+        position: absolute;
+        border: 3px solid #667eea;
+        box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5);
+        pointer-events: none;
+        z-index: 10;
+    }
+
+    .crop-box::before {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 30px;
+        height: 30px;
+        border: 2px solid #667eea;
+        border-radius: 50%;
+        background: rgba(102, 126, 234, 0.3);
+        pointer-events: none;
+    }
+
+    .crop-box::after {
+        content: '↔';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        color: #667eea;
+        font-size: 18px;
+        font-weight: bold;
+        pointer-events: none;
+    }
+
+    .crop-guide {
+        position: absolute;
+        background: rgba(102, 126, 234, 0.3);
+    }
+
+    .crop-guide.horizontal {
+        width: 100%;
+        height: 1px;
+        left: 0;
+    }
+
+    .crop-guide.vertical {
+        width: 1px;
+        height: 100%;
+        top: 0;
+    }
+
+    .interactive-mode {
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 10px;
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+
+    .interactive-mode h3 {
+        margin-bottom: 15px;
+        font-size: 1.1em;
+        color: #667eea;
+        text-align: center;
+    }
+
+    .interactive-hint {
+        text-align: center;
+        color: #aaa;
+        font-size: 0.9em;
+        margin-bottom: 15px;
+    }
+
+    .zoom-controls {
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+        align-items: center;
+        margin-top: 15px;
+    }
+
+    .zoom-btn {
+        background: rgba(102, 126, 234, 0.2);
+        border: 2px solid rgba(102, 126, 234, 0.5);
+        color: #667eea;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        font-size: 1.2em;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.3s ease;
+    }
+
+    .zoom-btn:hover {
+        background: rgba(102, 126, 234, 0.3);
+    }
+
+    .zoom-btn:active {
+        transform: scale(0.95);
+    }
+
+    .zoom-level {
+        color: #667eea;
+        font-size: 0.9em;
+        min-width: 60px;
+        text-align: center;
+    }
+
+    #croppedPreview {
+        border: 2px solid rgba(102, 126, 234, 0.3);
+        max-width: 100%;
+        height: auto;
+        border-radius: 8px;
+    }
+
+    .download-modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.9);
+        z-index: 2000;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+        overflow-y: auto;
+    }
+
+    .download-modal.show {
+        display: flex;
+    }
+
+    .download-modal-content {
+        background: rgba(255, 255, 255, 0.05);
+        backdrop-filter: blur(10px);
+        border-radius: 20px;
+        padding: 30px;
+        max-width: 800px;
+        width: 100%;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .download-modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+    }
+
+    .download-modal-header h3 {
+        margin: 0;
+        color: #667eea;
+    }
+
+    .download-modal-close {
+        background: rgba(255, 255, 255, 0.1);
+        border: none;
+        color: white;
+        width: 35px;
+        height: 35px;
+        border-radius: 50%;
+        cursor: pointer;
+        font-size: 1.5em;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.3s ease;
+    }
+
+    .download-modal-close:hover {
+        background: rgba(255, 255, 255, 0.2);
+    }
+
+    .download-modal-body {
+        text-align: center;
+    }
+
+    .download-modal-body > div {
+        margin-bottom: 20px;
+    }
+
+    .image-item {
+        position: relative;
+        margin-bottom: 20px;
+        padding: 15px;
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 10px;
+    }
+
+    .image-item-header {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 10px;
+    }
+
+    .image-checkbox {
+        width: 24px;
+        height: 24px;
+        cursor: pointer;
+    }
+
+    .image-label {
+        color: #667eea;
+        font-weight: 600;
+    }
+
+    .batch-download-controls {
+        position: sticky;
+        top: 20px;
+        background: rgba(26, 26, 46, 0.95);
+        backdrop-filter: blur(10px);
+        padding: 15px;
+        border-radius: 10px;
+        margin-bottom: 20px;
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+        align-items: center;
+        border: 2px solid rgba(102, 126, 234, 0.3);
+    }
+
+    .batch-download-controls button {
+        padding: 10px 20px;
+        font-size: 0.9em;
+    }
+
+    .select-count {
+        color: #667eea;
+        font-size: 0.9em;
+    }
+
+    .download-instructions {
+        background: rgba(102, 126, 234, 0.1);
+        padding: 20px;
+        border-radius: 10px;
+        text-align: left;
+        margin-top: 20px;
+    }
+
+    .download-instructions p {
+        margin: 10px 0;
+        line-height: 1.6;
+    }
+
+    .download-instructions strong {
+        color: #667eea;
+    }
+
+    @media (max-width: 768px) {
+        .container {
+            padding: 20px;
+        }
+
+        h1 {
+            font-size: 1.5em;
+        }
+
+        .upload-area {
+            padding: 40px 20px;
+        }
+    }
+</style>
+```
+
+</head>
+<body>
+    <!-- インストールプロンプト -->
+    <div class="install-prompt" id="installPrompt">
+        <div class="install-prompt-content">
+            <div class="install-prompt-icon">📱</div>
+            <div class="install-prompt-text">
+                <div class="install-prompt-title">ホーム画面に追加</div>
+                <div class="install-prompt-desc">
+                    Safari の「共有」→「ホーム画面に追加」でアプリのように使えます
+                </div>
+            </div>
+            <button class="install-prompt-close" onclick="closeInstallPrompt()">×</button>
+        </div>
+    </div>
+
+```
+<div class="container">
+    <h1>🖼️ Multi Cropper</h1>
+    <div class="subtitle">iPhoneスクショを好きなアスペクト比に</div>
+
+    <div class="upload-area" id="uploadArea">
+        <div class="upload-icon">📱</div>
+        <div class="upload-text">画像をドラッグ＆ドロップ</div>
+        <div class="upload-hint">または クリックして選択</div>
+        <input type="file" id="fileInput" accept="image/*" multiple>
+    </div>
+
+    <div class="preview-section" id="previewSection">
+        <div class="aspect-ratio-selector">
+            <h3>📐 アスペクト比を選択</h3>
+            <div class="ratio-group">
+                <button class="ratio-btn" data-ratio="2.844" data-width="2844" data-height="1000">
+                    <div class="ratio-name">2.844:1</div>
+                    <div class="ratio-desc">Ultra Wide</div>
+                </button>
+                <button class="ratio-btn active" data-ratio="2.35" data-width="1920" data-height="817">
+                    <div class="ratio-name">2.35:1</div>
+                    <div class="ratio-desc">Cinemascope</div>
+                </button>
+                <button class="ratio-btn" data-ratio="1" data-width="1080" data-height="1080">
+                    <div class="ratio-name">1:1</div>
+                    <div class="ratio-desc">Square</div>
+                </button>
+            </div>
+            
+            <div style="margin-top: 15px; text-align: center;">
+                <label style="display: inline-flex; align-items: center; gap: 10px; cursor: pointer; padding: 10px 15px; background: rgba(255, 255, 255, 0.05); border-radius: 8px; border: 2px solid rgba(102, 126, 234, 0.3);">
+                    <input type="checkbox" id="autoRemoveBlackBars" style="width: 20px; height: 20px; cursor: pointer;">
+                    <span>✂️ 黒帯を自動カット</span>
+                </label>
+            </div>
+        </div>
+
+        <div class="interactive-mode" id="interactiveMode">
+            <h3>🎯 クロップ範囲を調整</h3>
+            <div class="interactive-hint">ピンチアウトでズーム / 画像をドラッグして位置調整</div>
+            <div class="crop-selector-container" id="cropSelector">
+                <div class="crop-selector-wrapper" id="cropWrapper">
+                    <img id="selectorImage" class="crop-selector-image" alt="Crop Selector">
+                    <div class="crop-box" id="cropBox">
+                        <div class="crop-guide horizontal" style="top: 33.33%"></div>
+                        <div class="crop-guide horizontal" style="top: 66.66%"></div>
+                        <div class="crop-guide vertical" style="left: 33.33%"></div>
+                        <div class="crop-guide vertical" style="left: 66.66%"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="zoom-controls">
+                <button class="zoom-btn" id="zoomOut">−</button>
+                <div class="zoom-level" id="zoomLevel">100%</div>
+                <button class="zoom-btn" id="zoomIn">+</button>
+                <button class="zoom-btn" id="zoomReset">⟲</button>
+            </div>
+        </div>
+
+        <div class="preview-container">
+            <div class="preview-label">元の画像</div>
+            <img id="originalPreview" alt="Original">
+            <div class="image-info" id="originalInfo"></div>
+        </div>
+
+        <div class="preview-container">
+            <div class="preview-label" id="croppedLabel">クロップ後（1920×817）</div>
+            <div class="canvas-container">
+                <img id="croppedPreview" alt="Cropped">
+                <canvas id="croppedCanvas" style="display:none;"></canvas>
+            </div>
+            <div class="image-info" id="ratioInfo">アスペクト比: 2.35:1 (Cinemascope)</div>
+            <div class="download-hint">💡 画像を長押しして「写真に追加」で保存できます</div>
+        </div>
+
+        <div class="controls">
+            <button class="btn-primary" id="downloadBtn">
+                💾 この画像を保存
+            </button>
+            <button class="btn-secondary" id="nextBtn" style="display:none;">
+                ⏭️ 次の画像
+            </button>
+            <button class="btn-secondary" id="downloadAllBtn" style="display:none;">
+                📦 全て一括保存
+            </button>
+            <button class="btn-secondary" id="resetBtn">
+                🔄 別の画像を選択
+            </button>
+        </div>
+        
+        <div class="batch-progress" id="batchProgress" style="display:none;">
+            <div class="progress-text">
+                <span id="currentImageNum">1</span> / <span id="totalImages">1</span> 枚
+            </div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Download modal -->
+<div class="download-modal" id="downloadModal">
+    <div class="download-modal-content">
+        <div class="download-modal-header">
+            <h3>📥 画像を保存</h3>
+            <button class="download-modal-close" id="closeModal">×</button>
+        </div>
+        <div class="download-modal-body">
+            <div id="downloadImage"></div>
+            <div class="download-instructions">
+                <p><strong>📱 iPhoneの場合:</strong></p>
+                <p>画像を長押し → 「写真に追加」を選択</p>
+                <p><strong>💻 PCの場合:</strong></p>
+                <p>画像を右クリック → 「名前を付けて保存」を選択</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Aspect ratio presets
+    const RATIOS = {
+        '2.844': { width: 2844, height: 1000, name: 'Ultra Wide', ratio: 2.844 },
+        '2.35': { width: 1920, height: 817, name: 'Cinemascope', ratio: 2.35 },
+        '1': { width: 1080, height: 1080, name: 'Square', ratio: 1 }
+    };
+
+    let currentRatio = '2.35';
+    let TARGET_WIDTH = RATIOS[currentRatio].width;
+    let TARGET_HEIGHT = RATIOS[currentRatio].height;
+    let TARGET_RATIO = RATIOS[currentRatio].ratio;
+
+    let currentImage = null;
+    let imageQueue = [];
+    let currentImageIndex = 0;
+    let processedImages = [];
+    let customCropX = 0;
+    let customCropY = 0;
+    let isDragging = false;
+    let dragStartX = 0;
+    let dragStartY = 0;
+    let imageStartX = 0;
+    let imageStartY = 0;
+    let imagePanX = 0;
+    let imagePanY = 0;
+    let zoomLevel = 1;
+    let isPinching = false;
+    let initialPinchDistance = 0;
+    let initialZoom = 1;
+    let autoRemoveBlackBars = false;
+    let detectedCropBounds = null;
+    let processedImage = null; // Store the image after black bar removal
+
+    const uploadArea = document.getElementById('uploadArea');
+    const fileInput = document.getElementById('fileInput');
+    const previewSection = document.getElementById('previewSection');
+    const originalPreview = document.getElementById('originalPreview');
+    const croppedPreview = document.getElementById('croppedPreview');
+    const croppedCanvas = document.getElementById('croppedCanvas');
+    const originalInfo = document.getElementById('originalInfo');
+    const downloadBtn = document.getElementById('downloadBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const cropSelector = document.getElementById('cropSelector');
+    const selectorImage = document.getElementById('selectorImage');
+    const cropBox = document.getElementById('cropBox');
+    const interactiveMode = document.getElementById('interactiveMode');
+    const cropWrapper = document.getElementById('cropWrapper');
+    const zoomIn = document.getElementById('zoomIn');
+    const zoomOut = document.getElementById('zoomOut');
+    const zoomReset = document.getElementById('zoomReset');
+    const zoomLevelDisplay = document.getElementById('zoomLevel');
+    const nextBtn = document.getElementById('nextBtn');
+    const downloadAllBtn = document.getElementById('downloadAllBtn');
+    const batchProgress = document.getElementById('batchProgress');
+    const currentImageNum = document.getElementById('currentImageNum');
+    const totalImages = document.getElementById('totalImages');
+    const progressFill = document.getElementById('progressFill');
+    const downloadModal = document.getElementById('downloadModal');
+    const downloadImage = document.getElementById('downloadImage');
+    const closeModal = document.getElementById('closeModal');
+    const ratioBtns = document.querySelectorAll('.ratio-btn');
+    const croppedLabel = document.getElementById('croppedLabel');
+    const ratioInfo = document.getElementById('ratioInfo');
+    const autoRemoveCheckbox = document.getElementById('autoRemoveBlackBars');
+
+    // Upload area click
+    uploadArea.addEventListener('click', () => fileInput.click());
+
+    // File selection
+    fileInput.addEventListener('change', (e) => {
+        if (e.target.files && e.target.files.length > 0) {
+            imageQueue = Array.from(e.target.files);
+            currentImageIndex = 0;
+            processedImages = [];
+            loadImageFromQueue();
+        }
+    });
+
+    // Drag and drop
+    uploadArea.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        uploadArea.classList.add('dragover');
+    });
+
+    uploadArea.addEventListener('dragleave', () => {
+        uploadArea.classList.remove('dragover');
+    });
+
+    uploadArea.addEventListener('drop', (e) => {
+        e.preventDefault();
+        uploadArea.classList.remove('dragover');
+        if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+            imageQueue = Array.from(e.dataTransfer.files);
+            currentImageIndex = 0;
+            processedImages = [];
+            loadImageFromQueue();
+        }
+    });
+
+    // Ratio selection
+    ratioBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            ratioBtns.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            
+            currentRatio = btn.dataset.ratio;
+            TARGET_WIDTH = parseInt(btn.dataset.width);
+            TARGET_HEIGHT = parseInt(btn.dataset.height);
+            TARGET_RATIO = parseFloat(btn.dataset.ratio);
+            
+            // Update labels
+            croppedLabel.textContent = `クロップ後（${TARGET_WIDTH}×${TARGET_HEIGHT}）`;
+            const ratioName = RATIOS[currentRatio].name;
+            ratioInfo.textContent = `アスペクト比: ${currentRatio}:1 (${ratioName})`;
+            
+            // Reset and recalculate
+            if (currentImage) {
+                zoomLevel = 1;
+                imagePanX = 0;
+                imagePanY = 0;
+                setupCropSelector(currentImage);
+                cropImage(currentImage);
+            }
+        });
+    });
+
+    // Auto remove black bars toggle
+    autoRemoveCheckbox.addEventListener('change', (e) => {
+        autoRemoveBlackBars = e.target.checked;
+        if (currentImage) {
+            if (autoRemoveBlackBars) {
+                detectAndRemoveBlackBars(currentImage);
+            } else {
+                detectedCropBounds = null;
+                setupCropSelector(currentImage);
+                cropImage(currentImage);
+            }
+        }
+    });
+
+    // Dragging functionality - now drags the image
+    selectorImage.addEventListener('mousedown', startDrag);
+    selectorImage.addEventListener('touchstart', startDrag);
+
+    document.addEventListener('mousemove', drag);
+    document.addEventListener('touchmove', drag);
+
+    document.addEventListener('mouseup', endDrag);
+    document.addEventListener('touchend', endDrag);
+
+    // Pinch zoom functionality
+    cropSelector.addEventListener('touchstart', handleTouchStart);
+    cropSelector.addEventListener('touchmove', handleTouchMove);
+    cropSelector.addEventListener('touchend', handleTouchEnd);
+
+    // Zoom buttons
+    zoomIn.addEventListener('click', () => {
+        setZoom(zoomLevel + 0.2);
+    });
+
+    zoomOut.addEventListener('click', () => {
+        setZoom(zoomLevel - 0.2);
+    });
+
+    zoomReset.addEventListener('click', () => {
+        setZoom(1);
+        imagePanX = 0;
+        imagePanY = 0;
+        updateImageTransform();
+        updateCustomCropPosition();
+        cropImage(currentImage);
+    });
+
+    function handleTouchStart(e) {
+        if (e.touches.length === 2) {
+            isPinching = true;
+            initialPinchDistance = getDistance(e.touches[0], e.touches[1]);
+            initialZoom = zoomLevel;
+            e.preventDefault();
+        }
+    }
+
+    function handleTouchMove(e) {
+        if (isPinching && e.touches.length === 2) {
+            const currentDistance = getDistance(e.touches[0], e.touches[1]);
+            const scale = currentDistance / initialPinchDistance;
+            const newZoom = initialZoom * scale;
+            setZoom(newZoom);
+            e.preventDefault();
+        }
+    }
+
+    function handleTouchEnd(e) {
+        if (e.touches.length < 2) {
+            isPinching = false;
+        }
+    }
+
+    function getDistance(touch1, touch2) {
+        const dx = touch1.clientX - touch2.clientX;
+        const dy = touch1.clientY - touch2.clientY;
+        return Math.sqrt(dx * dx + dy * dy);
+    }
+
+    function setZoom(newZoom) {
+        zoomLevel = Math.max(1, Math.min(3, newZoom));
+        zoomLevelDisplay.textContent = Math.round(zoomLevel * 100) + '%';
+        updateImageTransform();
+        updateCustomCropPosition();
+        if (currentImage) {
+            cropImage(currentImage);
+        }
+    }
+
+    function updateImageTransform() {
+        selectorImage.style.transform = `translate(${imagePanX}px, ${imagePanY}px) scale(${zoomLevel})`;
+    }
+
+    function startDrag(e) {
+        if (isPinching) return;
+        
+        isDragging = true;
+        selectorImage.style.cursor = 'grabbing';
+        
+        const touch = e.touches ? e.touches[0] : e;
+        dragStartX = touch.clientX;
+        dragStartY = touch.clientY;
+        imageStartX = imagePanX;
+        imageStartY = imagePanY;
+        
+        e.preventDefault();
+    }
+
+    function drag(e) {
+        if (!isDragging || isPinching) return;
+        
+        const touch = e.touches ? e.touches[0] : e;
+        const deltaX = touch.clientX - dragStartX;
+        const deltaY = touch.clientY - dragStartY;
+        
+        imagePanX = imageStartX + deltaX;
+        imagePanY = imageStartY + deltaY;
+        
+        updateImageTransform();
+        updateCustomCropPosition();
+        cropImage(currentImage);
+        
+        e.preventDefault();
+    }
+
+    function endDrag() {
+        if (isDragging) {
+            isDragging = false;
+            selectorImage.style.cursor = 'move';
+        }
+    }
+
+    function updateCustomCropPosition() {
+        if (!currentImage) return;
+        
+        const imageRect = selectorImage.getBoundingClientRect();
+        const cropBoxRect = cropBox.getBoundingClientRect();
+        
+        const relativeX = (cropBoxRect.left - imageRect.left) / imageRect.width;
+        const relativeY = (cropBoxRect.top - imageRect.top) / imageRect.height;
+        
+        customCropX = relativeX;
+        customCropY = relativeY;
+    }
+
+    // Detect and remove black bars - creates a new cropped image
+    function detectAndRemoveBlackBars(img, originalFilename) {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = img.width;
+        canvas.height = img.height;
+        ctx.drawImage(img, 0, 0);
+        
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const data = imageData.data;
+        
+        const threshold = 15; // Very strict threshold for true black
+        const minBlackRatio = 0.95; // 95% must be very dark
+        
+        // Check if a row is uniformly black
+        function isRowBlack(y) {
+            let blackCount = 0;
+            let totalCount = 0;
+            
+            for (let x = 0; x < canvas.width; x += 3) {
+                const i = (y * canvas.width + x) * 4;
+                const r = data[i];
+                const g = data[i + 1];
+                const b = data[i + 2];
+                
+                if (r <= threshold && g <= threshold && b <= threshold) {
+                    blackCount++;
+                }
+                totalCount++;
+            }
+            
+            return (blackCount / totalCount) >= minBlackRatio;
+        }
+        
+        // Check if a column is uniformly black
+        function isColBlack(x) {
+            let blackCount = 0;
+            let totalCount = 0;
+            
+            for (let y = 0; y < canvas.height; y += 3) {
+                const i = (y * canvas.width + x) * 4;
+                const r = data[i];
+                const g = data[i + 1];
+                const b = data[i + 2];
+                
+                if (r <= threshold && g <= threshold && b <= threshold) {
+                    blackCount++;
+                }
+                totalCount++;
+            }
+            
+            return (blackCount / totalCount) >= minBlackRatio;
+        }
+        
+        // Find top boundary
+        let top = 0;
+        for (let y = 0; y < Math.min(canvas.height * 0.4, 300); y++) {
+            if (!isRowBlack(y)) {
+                top = y;
+                break;
+            }
+        }
+        
+        // Find bottom boundary
+        let bottom = canvas.height;
+        for (let y = canvas.height - 1; y >= Math.max(canvas.height * 0.6, canvas.height - 300); y--) {
+            if (!isRowBlack(y)) {
+                bottom = y + 1;
+                break;
+            }
+        }
+        
+        // Find left boundary
+        let left = 0;
+        for (let x = 0; x < Math.min(canvas.width * 0.4, 300); x++) {
+            if (!isColBlack(x)) {
+                left = x;
+                break;
+            }
+        }
+        
+        // Find right boundary
+        let right = canvas.width;
+        for (let x = canvas.width - 1; x >= Math.max(canvas.width * 0.6, canvas.width - 300); x--) {
+            if (!isColBlack(x)) {
+                right = x + 1;
+                break;
+            }
+        }
+        
+        // Validate - only proceed if we found actual black bars
+        const removedTop = top;
+        const removedBottom = canvas.height - bottom;
+        const removedLeft = left;
+        const removedRight = canvas.width - right;
+        
+        const hasBlackBars = removedTop > 5 || removedBottom > 5 || removedLeft > 5 || removedRight > 5;
+        
+        if (!hasBlackBars) {
+            console.log('No significant black bars detected');
+            detectedCropBounds = null;
+            processedImage = null;
+            return;
+        }
+        
+        console.log('Black bars detected:');
+        console.log(`  Top: ${removedTop}px, Bottom: ${removedBottom}px`);
+        console.log(`  Left: ${removedLeft}px, Right: ${removedRight}px`);
+        console.log(`  Original: ${canvas.width}x${canvas.height}`);
+        console.log(`  Content: ${right - left}x${bottom - top}`);
+        
+        // Create new image without black bars
+        const croppedWidth = right - left;
+        const croppedHeight = bottom - top;
+        const croppedCanvas = document.createElement('canvas');
+        croppedCanvas.width = croppedWidth;
+        croppedCanvas.height = croppedHeight;
+        const croppedCtx = croppedCanvas.getContext('2d');
+        
+        croppedCtx.drawImage(
+            img,
+            left, top, croppedWidth, croppedHeight,
+            0, 0, croppedWidth, croppedHeight
+        );
+        
+        // Convert to image
+        const croppedImg = new Image();
+        croppedImg.onload = () => {
+            processedImage = croppedImg;
+            detectedCropBounds = { top, bottom, left, right };
+            currentImage = croppedImg; // Use cropped image as current
+            currentImage.originalFilename = originalFilename; // Preserve original filename
+            displayOriginal(croppedImg);
+            setupCropSelector(croppedImg);
+            cropImage(croppedImg);
+        };
+        croppedImg.src = croppedCanvas.toDataURL();
+    }
+
+    // Handle file
+    function handleFile(file) {
+        if (!file.type.startsWith('image/')) {
+            alert('画像ファイルを選択してください');
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const img = new Image();
+            img.onload = () => {
+                if (autoRemoveBlackBars) {
+                    detectAndRemoveBlackBars(img, file.name);
+                } else {
+                    currentImage = img;
+                    currentImage.originalFilename = file.name; // Store original filename
+                    displayOriginal(img);
+                    setupCropSelector(img);
+                    cropImage(img);
+                }
+                previewSection.style.display = 'block';
+                interactiveMode.style.display = 'block';
+                updateBatchUI();
+            };
+            img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    }
+
+    // Load image from queue
+    function loadImageFromQueue() {
+        if (currentImageIndex < imageQueue.length) {
+            handleFile(imageQueue[currentImageIndex]);
+        }
+    }
+
+    // Update batch UI
+    function updateBatchUI() {
+        if (imageQueue.length > 1) {
+            batchProgress.style.display = 'block';
+            nextBtn.style.display = 'inline-block';
+            downloadAllBtn.style.display = 'inline-block';
+            currentImageNum.textContent = currentImageIndex + 1;
+            totalImages.textContent = imageQueue.length;
+            const progress = ((currentImageIndex + 1) / imageQueue.length) * 100;
+            progressFill.style.width = progress + '%';
+        } else {
+            batchProgress.style.display = 'none';
+            nextBtn.style.display = 'none';
+            downloadAllBtn.style.display = 'none';
+        }
+    }
+
+    // Next image button
+    nextBtn.addEventListener('click', () => {
+        // Generate filename from original
+        let filename = 'cropped_image.png';
+        if (currentImage && currentImage.originalFilename) {
+            const baseName = currentImage.originalFilename.replace(/\.[^/.]+$/, ''); // Remove extension
+            const ext = currentImage.originalFilename.match(/\.[^/.]+$/)?.[0] || '.png';
+            filename = `${baseName}_cropped${ext}`;
+        }
+        
+        processedImages.push({
+            dataURL: croppedPreview.src,
+            filename: filename,
+            originalFilename: currentImage?.originalFilename
+        });
+        
+        currentImageIndex++;
+        if (currentImageIndex < imageQueue.length) {
+            zoomLevel = 1;
+            imagePanX = 0;
+            imagePanY = 0;
+            loadImageFromQueue();
+        } else {
+            alert('全ての画像の編集が完了しました！「全て一括保存」で保存できます。');
+        }
+    });
+
+    // Download all button
+    downloadAllBtn.addEventListener('click', () => {
+        if (processedImages.length === currentImageIndex) {
+            // Generate filename from original
+            let filename = 'cropped_image.png';
+            if (currentImage && currentImage.originalFilename) {
+                const baseName = currentImage.originalFilename.replace(/\.[^/.]+$/, '');
+                const ext = currentImage.originalFilename.match(/\.[^/.]+$/)?.[0] || '.png';
+                filename = `${baseName}_cropped${ext}`;
+            }
+            
+            processedImages.push({
+                dataURL: croppedPreview.src,
+                filename: filename,
+                originalFilename: currentImage?.originalFilename
+            });
+        }
+        
+        let allImagesHTML = `
+            <div class="batch-download-controls">
+                <button class="btn-secondary" onclick="selectAllImages()">全て選択</button>
+                <button class="btn-secondary" onclick="deselectAllImages()">全て解除</button>
+                <button class="btn-primary" onclick="downloadSelectedAsZip()">📦 ZIPで保存</button>
+                <button class="btn-secondary" onclick="downloadSelectedImages()">選択した画像を表示</button>
+                <span class="select-count" id="selectCount">0枚選択中</span>
+            </div>
+        `;
+        
+        processedImages.forEach((img, index) => {
+            allImagesHTML += `
+                <div class="image-item">
+                    <div class="image-item-header">
+                        <input type="checkbox" class="image-checkbox" id="img-check-${index}" onchange="updateSelectCount()">
+                        <label for="img-check-${index}" class="image-label">画像 ${index + 1}</label>
+                    </div>
+                    <img src="${img.dataURL}" style="max-width: 100%; border-radius: 10px; border: 2px solid rgba(102, 126, 234, 0.3);">
+                </div>
+            `;
+        });
+        
+        downloadImage.innerHTML = allImagesHTML;
+        downloadModal.classList.add('show');
+    });
+
+    // Display original image
+    function displayOriginal(img) {
+        originalPreview.src = img.src;
+        let infoText = `サイズ: ${img.width}×${img.height}px`;
+        if (autoRemoveBlackBars && detectedCropBounds) {
+            infoText += ` ✂️ 黒帯除去済み`;
+        }
+        originalInfo.textContent = infoText;
+    }
+
+    // Setup crop selector
+    function setupCropSelector(img) {
+        selectorImage.src = img.src;
+        
+        selectorImage.onload = () => {
+            const imageRect = selectorImage.getBoundingClientRect();
+            const containerRect = cropSelector.getBoundingClientRect();
+            const displayedWidth = imageRect.width;
+            const displayedHeight = imageRect.height;
+            
+            const imgRatio = img.width / img.height;
+            
+            let boxWidth, boxHeight;
+            if (imgRatio > TARGET_RATIO) {
+                boxHeight = displayedHeight;
+                boxWidth = boxHeight * TARGET_RATIO;
+            } else {
+                boxWidth = displayedWidth;
+                boxHeight = boxWidth / TARGET_RATIO;
+            }
+            
+            cropBox.style.width = boxWidth + 'px';
+            cropBox.style.height = boxHeight + 'px';
+            
+            cropBox.style.left = (containerRect.width - boxWidth) / 2 + 'px';
+            cropBox.style.top = (containerRect.height - boxHeight) / 2 + 'px';
+            
+            zoomLevel = 1;
+            imagePanX = 0;
+            imagePanY = 0;
+            updateImageTransform();
+            
+            updateCustomCropPosition();
+        };
+    }
+
+    // Crop image
+    function cropImage(img) {
+        if (!img) return;
+        
+        const canvas = croppedCanvas;
+        const ctx = canvas.getContext('2d');
+
+        canvas.width = TARGET_WIDTH;
+        canvas.height = TARGET_HEIGHT;
+
+        // Get visual dimensions and positions
+        const imageRect = selectorImage.getBoundingClientRect();
+        const cropBoxRect = cropBox.getBoundingClientRect();
+        
+        // Calculate crop position relative to the displayed image
+        const cropX = cropBoxRect.left - imageRect.left;
+        const cropY = cropBoxRect.top - imageRect.top;
+        const cropWidth = cropBoxRect.width;
+        const cropHeight = cropBoxRect.height;
+        
+        // Calculate the scale factor from display to original image
+        const scale = img.width / imageRect.width;
+        
+        // Convert display coordinates to original image coordinates
+        let sourceX = (cropX * scale) / zoomLevel;
+        let sourceY = (cropY * scale) / zoomLevel;
+        let sourceWidth = (cropWidth * scale) / zoomLevel;
+        let sourceHeight = (cropHeight * scale) / zoomLevel;
+        
+        // Clamp to image bounds
+        sourceX = Math.max(0, Math.min(sourceX, img.width - 1));
+        sourceY = Math.max(0, Math.min(sourceY, img.height - 1));
+        sourceWidth = Math.min(sourceWidth, img.width - sourceX);
+        sourceHeight = Math.min(sourceHeight, img.height - sourceY);
+
+        // Draw the cropped region
+        ctx.drawImage(
+            img,
+            sourceX, sourceY, sourceWidth, sourceHeight,
+            0, 0, TARGET_WIDTH, TARGET_HEIGHT
+        );
+
+        croppedPreview.src = canvas.toDataURL('image/png');
+    }
+
+    // Download - Show modal with image
+    downloadBtn.addEventListener('click', () => {
+        downloadImage.innerHTML = `<img src="${croppedPreview.src}" style="max-width: 100%; border-radius: 10px; border: 2px solid rgba(102, 126, 234, 0.3);" alt="Cropped Image">`;
+        downloadModal.classList.add('show');
+    });
+
+    // Close modal
+    closeModal.addEventListener('click', () => {
+        downloadModal.classList.remove('show');
+    });
+
+    downloadModal.addEventListener('click', (e) => {
+        if (e.target === downloadModal) {
+            downloadModal.classList.remove('show');
+        }
+    });
+
+    // Reset
+    resetBtn.addEventListener('click', () => {
+        previewSection.style.display = 'none';
+        interactiveMode.style.display = 'none';
+        batchProgress.style.display = 'none';
+        fileInput.value = '';
+        currentImage = null;
+        processedImage = null;
+        imageQueue = [];
+        currentImageIndex = 0;
+        processedImages = [];
+        customCropX = 0;
+        customCropY = 0;
+        zoomLevel = 1;
+        imagePanX = 0;
+        imagePanY = 0;
+        detectedCropBounds = null;
+    });
+
+    // Install prompt for iOS
+    function closeInstallPrompt() {
+        const prompt = document.getElementById('installPrompt');
+        prompt.classList.remove('show');
+        localStorage.setItem('installPromptClosed', 'true');
+    }
+
+    window.addEventListener('load', () => {
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+        const isInStandaloneMode = ('standalone' in window.navigator) && (window.navigator.standalone);
+        const promptClosed = localStorage.getItem('installPromptClosed');
+        
+        if (isIOS && !isInStandaloneMode && !promptClosed) {
+            setTimeout(() => {
+                document.getElementById('installPrompt').classList.add('show');
+            }, 2000);
+        }
+    });
+
+    // Checkbox selection functions
+    function updateSelectCount() {
+        const checkboxes = document.querySelectorAll('.image-checkbox');
+        const checked = document.querySelectorAll('.image-checkbox:checked');
+        const countEl = document.getElementById('selectCount');
+        if (countEl) {
+            countEl.textContent = `${checked.length}枚選択中`;
+        }
+    }
+
+    function selectAllImages() {
+        const checkboxes = document.querySelectorAll('.image-checkbox');
+        checkboxes.forEach(cb => cb.checked = true);
+        updateSelectCount();
+    }
+
+    function deselectAllImages() {
+        const checkboxes = document.querySelectorAll('.image-checkbox');
+        checkboxes.forEach(cb => cb.checked = false);
+        updateSelectCount();
+    }
+
+    function downloadSelectedImages() {
+        const checkboxes = document.querySelectorAll('.image-checkbox');
+        const selectedIndices = [];
+        
+        checkboxes.forEach((cb, index) => {
+            if (cb.checked) {
+                selectedIndices.push(index);
+            }
+        });
+
+        if (selectedIndices.length === 0) {
+            alert('画像を選択してください');
+            return;
+        }
+
+        // Show only selected images
+        let selectedHTML = '';
+        selectedIndices.forEach((index) => {
+            const img = processedImages[index];
+            selectedHTML += `
+                <div style="margin-bottom: 20px;">
+                    <div style="color: #667eea; margin-bottom: 10px;">画像 ${index + 1}</div>
+                    <img src="${img.dataURL}" style="max-width: 100%; border-radius: 10px; border: 2px solid rgba(102, 126, 234, 0.3);">
+                </div>
+            `;
+        });
+
+        selectedHTML += `
+            <div class="download-instructions">
+                <p><strong>📱 iPhoneの場合:</strong></p>
+                <p>画像を長押し → 「写真に追加」を選択</p>
+                <p><strong>💻 PCの場合:</strong></p>
+                <p>画像を右クリック → 「名前を付けて保存」を選択</p>
+            </div>
+        `;
+
+        downloadImage.innerHTML = selectedHTML;
+    }
+
+    async function downloadSelectedAsZip() {
+        const checkboxes = document.querySelectorAll('.image-checkbox');
+        const selectedIndices = [];
+        
+        checkboxes.forEach((cb, index) => {
+            if (cb.checked) {
+                selectedIndices.push(index);
+            }
+        });
+
+        if (selectedIndices.length === 0) {
+            alert('画像を選択してください');
+            return;
+        }
+
+        try {
+            // Show loading message
+            const originalHTML = downloadImage.innerHTML;
+            downloadImage.innerHTML = `
+                <div style="padding: 40px; text-align: center;">
+                    <div style="font-size: 2em; margin-bottom: 20px;">📦</div>
+                    <div style="color: #667eea; font-size: 1.2em; margin-bottom: 10px;">ZIPファイルを作成中...</div>
+                    <div style="color: #aaa; font-size: 0.9em;">${selectedIndices.length}枚の画像を処理しています</div>
+                </div>
+            `;
+
+            // Create ZIP file
+            const zip = new JSZip();
+            
+            for (let i = 0; i < selectedIndices.length; i++) {
+                const index = selectedIndices[i];
+                const img = processedImages[index];
+                
+                // Use stored filename or fallback to generic name
+                const filename = img.filename || `cropped_${index + 1}.png`;
+                
+                // Convert data URL to blob
+                const base64Data = img.dataURL.split(',')[1];
+                const byteCharacters = atob(base64Data);
+                const byteNumbers = new Array(byteCharacters.length);
+                for (let j = 0; j < byteCharacters.length; j++) {
+                    byteNumbers[j] = byteCharacters.charCodeAt(j);
+                }
+                const byteArray = new Uint8Array(byteNumbers);
+                
+                // Add to ZIP with original filename
+                zip.file(filename, byteArray);
+            }
+
+            // Generate ZIP file
+            const zipBlob = await zip.generateAsync({ type: 'blob' });
+            
+            // Create download link
+            const url = URL.createObjectURL(zipBlob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `cropped_images_${Date.now()}.zip`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            // Show success message
+            downloadImage.innerHTML = `
+                <div style="padding: 40px; text-align: center;">
+                    <div style="font-size: 3em; margin-bottom: 20px;">✅</div>
+                    <div style="color: #667eea; font-size: 1.3em; margin-bottom: 15px;">ZIPファイルのダウンロードが開始されました！</div>
+                    <div style="color: #aaa; font-size: 0.9em; line-height: 1.6;">
+                        <p>📱 <strong>iPhoneの場合：</strong></p>
+                        <p>1. ダウンロードしたZIPファイルは「ファイル」アプリの「ダウンロード」フォルダにあります</p>
+                        <p>2. ZIPファイルをタップして展開</p>
+                        <p>3. 画像を選択して「共有」→「画像を保存」で写真アプリに一括保存できます</p>
+                    </div>
+                    <button class="btn-secondary" onclick="location.reload()" style="margin-top: 20px;">閉じる</button>
+                </div>
+            `;
+            
+        } catch (error) {
+            console.error('ZIP creation failed:', error);
+            alert('ZIPファイルの作成に失敗しました。もう一度お試しください。');
+            downloadImage.innerHTML = originalHTML;
+        }
+    }
+</script>
+```
+
+</body>
+</html>
