@@ -1859,84 +1859,74 @@
    // --- 修正版セット（ここから） ---
 
     function setupCropSelector(img) {
-        selectorImage.src = img.src;
+    selectorImage.src = img.src;
+    
+    selectorImage.onload = () => {
+        const containerRect = cropSelector.getBoundingClientRect();
+        const imageRect = selectorImage.getBoundingClientRect();
         
-        selectorImage.onload = () => {
-            const containerRect = cropSelector.getBoundingClientRect();
-            const imageRect = selectorImage.getBoundingClientRect();
-            
-            // 基準サイズを保存
-            baseImageWidth = imageRect.width;
-            baseImageHeight = imageRect.height;
-            
-            const imgRatio = img.width / img.height;
-            
-            let boxWidth, boxHeight;
-            if (imgRatio > TARGET_RATIO) {
-                boxHeight = baseImageHeight;
-                boxWidth = boxHeight * TARGET_RATIO;
-            } else {
-                boxWidth = baseImageWidth;
-                boxHeight = boxWidth / TARGET_RATIO;
-            }
-            
-            cropBox.style.width = boxWidth + 'px';
-            cropBox.style.height = boxHeight + 'px';
-            cropBox.style.left = (containerRect.width - boxWidth) / 2 + 'px';
-            cropBox.style.top = (containerRect.height - boxHeight) / 2 + 'px';
-            
-            // 状態リセット
-            zoomLevel = 1;
-            imagePanX = 0;
-            imagePanY = 0;
-            updateImageTransform();
-            updateCustomCropPosition();
-            
-            cropImage(img);
-        };
-    }
+        baseImageWidth = imageRect.width;
+        baseImageHeight = imageRect.height;
+        
+        const imgRatio = img.width / img.height;
+        
+        // 枠のサイズを計算し、グローバル変数（または関数の外）に数値として保持
+        if (imgRatio > TARGET_RATIO) {
+            baseBoxHeight = baseImageHeight;
+            baseBoxWidth = baseBoxHeight * TARGET_RATIO;
+        } else {
+            baseBoxWidth = baseImageWidth;
+            baseBoxHeight = baseBoxWidth / TARGET_RATIO;
+        }
+        
+        cropBox.style.width = baseBoxWidth + 'px';
+        cropBox.style.height = baseBoxHeight + 'px';
+        cropBox.style.left = (containerRect.width - baseBoxWidth) / 2 + 'px';
+        cropBox.style.top = (containerRect.height - baseBoxHeight) / 2 + 'px';
+        
+        zoomLevel = 1;
+        imagePanX = 0;
+        imagePanY = 0;
+        updateImageTransform();
+        updateCustomCropPosition();
+        cropImage(img);
+    };
+}
 
     function cropImage(img) {
-        if (!img || !baseImageWidth) return;
-        
-        const canvas = croppedCanvas;
-        const ctx = canvas.getContext('2d');
-        canvas.width = TARGET_WIDTH;
-        canvas.height = TARGET_HEIGHT;
+    if (!img || !baseImageWidth || !baseBoxWidth) return;
+    
+    const canvas = croppedCanvas;
+    const ctx = canvas.getContext('2d');
+    canvas.width = TARGET_WIDTH;
+    canvas.height = TARGET_HEIGHT;
 
-        // 1. 実寸（natural）と最初に表示した時のサイズの比率を計算
-        // これにより「画面上の1px」が「実際の画像で何pxか」を求めます
-        const nw = img.naturalWidth;
-        const nh = img.naturalHeight;
-        const scale = nw / baseImageWidth;
+    const nw = img.naturalWidth;
+    const nh = img.naturalHeight;
+    
+    // 画面上の1pxが実寸の何pxにあたるか（100%時）
+    const scale = nw / baseImageWidth;
 
-        // 2. Safariでも狂わない「切り取り範囲」の計算
-        // zoomLevelを直接計算に使うことで、Safariの座標取得の癖を回避します
-        // 枠のサイズ × スケール比を、現在のズーム倍率で割ります
-        const sw = (cropBox.offsetWidth * scale) / zoomLevel;
-        const sh = (cropBox.offsetHeight * scale) / zoomLevel;
+    // Safari対策：画面から取得せず、保存しておいた「数値」から計算
+    // これにより横と縦の比率が「ズレる隙」をなくします
+    const sw = (baseBoxWidth * scale) / zoomLevel;
+    const sh = (baseBoxHeight * scale) / zoomLevel;
 
-        // 3. 移動量の計算
-        // 表示上の移動量(imagePanX/Y)を、実寸ピクセルに変換
-        // Safariではここがズーム倍率の影響を受けやすいため、明示的にzoomLevelで割ります
-        const dx = (imagePanX * scale) / zoomLevel;
-        const dy = (imagePanY * scale) / zoomLevel;
+    // 移動量の計算（ここもzoomLevelで割ることで同期）
+    const dx = (imagePanX * scale) / zoomLevel;
+    const dy = (imagePanY * scale) / zoomLevel;
 
-        // 4. 切り出し開始位置（左上基準）
-        // 画像の中心から、範囲の半分と移動量を引く
-        const sx = (nw / 2) - (sw / 2) - dx;
-        const sy = (nh / 2) - (sh / 2) - dy;
+    // 中心からの開始位置
+    const sx = (nw / 2) - (sw / 2) - dx;
+    const sy = (nh / 2) - (sh / 2) - dy;
 
-        // 背景を黒でクリア
-        ctx.fillStyle = "#000000";
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = "#000000";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        // 5. 描画
-        // sx, sy, sw, sh がすべて同じ scale と zoomLevel を元に計算されるため、
-        // 縦横比が崩れる（横伸びする）ことは物理的にあり得なくなります
-        ctx.drawImage(img, sx, sy, sw, sh, 0, 0, TARGET_WIDTH, TARGET_HEIGHT);
-        croppedPreview.src = canvas.toDataURL('image/png');
-    }
+    // 描画
+    ctx.drawImage(img, sx, sy, sw, sh, 0, 0, TARGET_WIDTH, TARGET_HEIGHT);
+    croppedPreview.src = canvas.toDataURL('image/png');
+}
     // --- 修正版セット（ここまで） ---
     resetBtn.addEventListener('click', () => {
         previewSection.style.display = 'none';
