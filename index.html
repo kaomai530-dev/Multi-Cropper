@@ -1902,7 +1902,7 @@
     }
 
     // Crop image
-    function cropImage(img) {
+        function cropImage(img) {
         if (!img) return;
         
         const canvas = croppedCanvas;
@@ -1911,51 +1911,49 @@
         canvas.width = TARGET_WIDTH;
         canvas.height = TARGET_HEIGHT;
 
-        // Get the natural (original) image size
+        // 元画像の本来のサイズ
         const naturalWidth = selectorImage.naturalWidth;
         const naturalHeight = selectorImage.naturalHeight;
         
-        // Get positions
-        const imageRect = selectorImage.getBoundingClientRect();
-        const cropBoxRect = cropBox.getBoundingClientRect();
+        // 1. ズームがかかっていない状態での「画面上の画像サイズ（ベース）」を基準にする
+        // scaleFactor: 画面上の1pxが、実際の画像（natural）の何pxに相当するか
+        const scaleFactor = naturalWidth / baseImageWidth;
         
-        // Calculate crop position relative to the displayed image
-        const cropX = cropBoxRect.left - imageRect.left;
-        const cropY = cropBoxRect.top - imageRect.top;
-        const cropWidth = cropBoxRect.width;
-        const cropHeight = cropBoxRect.height;
+        // 2. ズームに合わせて「実際に切り取る範囲の広さ」を計算する
+        // ズームアウト（zoomLevelが小さい）ほど、実際の画像からより広い範囲を切り取る必要がある
+        const sourceWidth = (cropBox.offsetWidth / zoomLevel) * scaleFactor;
+        const sourceHeight = (cropBox.offsetHeight / zoomLevel) * scaleFactor;
         
-        // The displayed size includes zoom
-        // Scale from displayed to base (unzoomed) size
-        const baseCropX = cropX / zoomLevel;
-        const baseCropY = cropY / zoomLevel;
-        const baseCropWidth = cropWidth / zoomLevel;
-        const baseCropHeight = cropHeight / zoomLevel;
+        // 3. 切り取り開始位置（左上座標）を計算
+        // 画像の中心からのズレ（Pan）を考慮して算出
+        const centerX = naturalWidth / 2;
+        const centerY = naturalHeight / 2;
         
-        // Scale from base to natural
-        const scale = naturalWidth / baseImageWidth;
+        // 画面上のズレ（imagePanX）を実際の画像サイズに変換
+        const actualPanX = (imagePanX / zoomLevel) * scaleFactor;
+        const actualPanY = (imagePanY / zoomLevel) * scaleFactor;
         
-        // Convert to source coordinates
-        let sourceX = baseCropX * scale;
-        let sourceY = baseCropY * scale;
-        let sourceWidth = baseCropWidth * scale;
-        let sourceHeight = baseCropHeight * scale;
-        
-        // Clamp to image bounds
-        sourceX = Math.max(0, Math.min(sourceX, naturalWidth - 1));
-        sourceY = Math.max(0, Math.min(sourceY, naturalHeight - 1));
-        sourceWidth = Math.min(sourceWidth, naturalWidth - sourceX);
-        sourceHeight = Math.min(sourceHeight, naturalHeight - sourceY);
+        // 切り取り開始位置 = 中心 - (切り取る幅の半分) - パンの移動量
+        let sourceX = (centerX - (sourceWidth / 2)) - actualPanX;
+        let sourceY = (centerY - (sourceHeight / 2)) - actualPanY;
 
-        // Draw the cropped region
+        // 背景をクリア（余白が出た時に引き伸ばさないようにする）
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        // もし黒背景を維持したい場合は、塗りつぶしを追加
+        ctx.fillStyle = "#000000";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // 4. 描画
         ctx.drawImage(
             img,
-            sourceX, sourceY, sourceWidth, sourceHeight,
-            0, 0, TARGET_WIDTH, TARGET_HEIGHT
+            sourceX, sourceY, sourceWidth, sourceHeight, // 元画像のこの範囲を
+            0, 0, TARGET_WIDTH, TARGET_HEIGHT           // クロップ後の枠いっぱいに描画
         );
 
         croppedPreview.src = canvas.toDataURL('image/png');
     }
+
 
     // Download - Show modal with image
     downloadBtn.addEventListener('click', () => {
