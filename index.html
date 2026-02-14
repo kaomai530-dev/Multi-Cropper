@@ -1354,8 +1354,8 @@
         // cropImage will be called on touch/interaction end for better performance
     }
 
-    function updateImageTransform() {
-    // ズーム倍率に関わらず、指定したピクセル数だけ移動させる設定
+   function updateImageTransform() {
+    // scaleの前にtranslateを書くのがポイントです
     selectorImage.style.transform = `translate(${imagePanX}px, ${imagePanY}px) scale(${zoomLevel})`;
 }
     function startDrag(e) {
@@ -1857,91 +1857,77 @@
     });
 
    // Setup crop selector
-    function setupCropSelector(img) {
-        selectorImage.src = img.src;
+   function setupCropSelector(img) {
+    selectorImage.src = img.src;
+    
+    selectorImage.onload = () => {
+        const containerRect = cropSelector.getBoundingClientRect();
         
-        selectorImage.onload = () => {
-            const containerRect = cropSelector.getBoundingClientRect();
-            
-            // ズームなどがかかる「前」の表示サイズを確実に取得してグローバル変数に保存
-            // ここで let や const を付けないことで、外側の baseImageWidth に代入します
-            const initialRect = selectorImage.getBoundingClientRect();
-            baseImageWidth = initialRect.width;
-            baseImageHeight = initialRect.height;
-            
-            const imgRatio = img.width / img.height;
-            
-            let boxWidth, boxHeight;
-            if (imgRatio > TARGET_RATIO) {
-                boxHeight = baseImageHeight;
-                boxWidth = boxHeight * TARGET_RATIO;
-            } else {
-                boxWidth = baseImageWidth;
-                boxHeight = boxWidth / TARGET_RATIO;
-            }
-            
-            cropBox.style.width = boxWidth + 'px';
-            cropBox.style.height = boxHeight + 'px';
-            cropBox.style.left = (containerRect.width - boxWidth) / 2 + 'px';
-            cropBox.style.top = (containerRect.height - boxHeight) / 2 + 'px';
-            
-            // 状態リセット
-            zoomLevel = 1;
-            imagePanX = 0;
-            imagePanY = 0;
-            updateImageTransform();
-            updateCustomCropPosition();
-            
-            cropImage(img);
-        };
-    }
+        // ズームなどがかかる前の「初期表示サイズ」を取得
+        const imageRect = selectorImage.getBoundingClientRect();
+        
+        // グローバル変数にベースサイズを確実に保存
+        baseImageWidth = imageRect.width;
+        baseImageHeight = imageRect.height;
+        
+        const imgRatio = img.width / img.height;
+        
+        let boxWidth, boxHeight;
+        if (imgRatio > TARGET_RATIO) {
+            boxHeight = baseImageHeight;
+            boxWidth = boxHeight * TARGET_RATIO;
+        } else {
+            boxWidth = baseImageWidth;
+            boxHeight = boxWidth / TARGET_RATIO;
+        }
+        
+        cropBox.style.width = boxWidth + 'px';
+        cropBox.style.height = boxHeight + 'px';
+        cropBox.style.left = (containerRect.width - boxWidth) / 2 + 'px';
+        cropBox.style.top = (containerRect.height - boxHeight) / 2 + 'px';
+        
+        // 状態を初期化
+        zoomLevel = 1;
+        imagePanX = 0;
+        imagePanY = 0;
+        updateImageTransform();
+        updateCustomCropPosition();
+        
+        // 初回のクロップ実行
+        cropImage(img);
+    };
+}
     // Crop image
         function cropImage(img) {
-        if (!img) return;
-        
-        const canvas = croppedCanvas;
-        const ctx = canvas.getContext('2d');
+    if (!img || !baseImageWidth) return;
+    
+    const canvas = croppedCanvas;
+    const ctx = canvas.getContext('2d');
+    canvas.width = TARGET_WIDTH;
+    canvas.height = TARGET_HEIGHT;
 
-        canvas.width = TARGET_WIDTH;
-        canvas.height = TARGET_HEIGHT;
+    // 画面上の画像(imgRect)とクロップ枠(boxRect)のリアルな位置を取得
+    const imgRect = selectorImage.getBoundingClientRect();
+    const boxRect = cropBox.getBoundingClientRect();
 
-        // 1. 画面上の「画像そのもの」と「青い枠」の座標を取得
-        const imgRect = selectorImage.getBoundingClientRect();
-        const boxRect = cropBox.getBoundingClientRect();
+    // 実寸と表示寸のスケール比
+    const scaleX = img.naturalWidth / imgRect.width;
+    const scaleY = img.naturalHeight / imgRect.height;
 
-        // 2. 実寸(natural)と表示寸(rect)のスケール比
-        const nw = img.naturalWidth;
-        const nh = img.naturalHeight;
-        const scaleX = nw / imgRect.width;
-        const scaleY = nh / imgRect.height;
+    // 枠が画像のどの位置にあるかを実寸ピクセルに変換
+    const sx = (boxRect.left - imgRect.left) * scaleX;
+    const sy = (boxRect.top - imgRect.top) * scaleY;
+    const sw = boxRect.width * scaleX;
+    const sh = boxRect.height * scaleY;
 
-        // 3. 「枠」の座標を「画像」の座標系に変換
-        // 枠が画像の外（黒い部分）にある場合、sxやsyはマイナスになります
-        const sx = (boxRect.left - imgRect.left) * scaleX;
-        const sy = (boxRect.top - imgRect.top) * scaleY;
-        const sw = boxRect.width * scaleX;
-        const sh = boxRect.height * scaleY;
+    // 背景を黒でクリア
+    ctx.fillStyle = "#000000";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        // 4. 背景を真っ黒に塗る
-        ctx.fillStyle = "#000000";
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-        // 5. 【ここが修正の鍵】
-        // 画像をキャンバスの「どこに」「どのサイズで」描画するかを計算
-        // sw, sh（切り取り範囲）がキャンバスの比率と同じになるように描画します
-        ctx.drawImage(
-            img,
-            sx, sy, sw, sh,             // ソース（元画像の切り取り範囲）
-            0, 0, canvas.width, canvas.height // デスティネーション（キャンバスの全域）
-        );
-
-        // もしこれでも伸びる場合は、アスペクト比を強制固定して描画
-        // 画像の縦横比を維持したまま、キャンバス内に収めます
-        croppedPreview.src = canvas.toDataURL('image/png');
-    }
-
-        croppedPreview.src = canvas.toDataURL('image/png');
-    }
+    // 描画
+    ctx.drawImage(img, sx, sy, sw, sh, 0, 0, TARGET_WIDTH, TARGET_HEIGHT);
+    croppedPreview.src = canvas.toDataURL('image/png');
+}
 
     // Reset
     resetBtn.addEventListener('click', () => {
