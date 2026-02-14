@@ -1867,15 +1867,17 @@ let baseBoxHeight = 0;
     selectorImage.src = img.src;
     
     selectorImage.onload = () => {
-        // コンテナのサイズだけはブラウザから取得（これはズレない）
         const containerRect = cropSelector.getBoundingClientRect();
         
-        // 【重要】ブラウザの表示サイズ（getBoundingClientRect）を使わず
-        // 画像の「真の実寸」をベースに、画面上の「100%表示サイズ」を自前で計算する
-        // これによりRetinaディスプレイやスマホの倍率問題を強制排除します
-        const imgRatio = img.naturalWidth / img.naturalHeight;
+        // Safariのキャッシュによる誤計算を防ぐため、一度リセット
+        selectorImage.style.width = 'auto';
+        selectorImage.style.height = 'auto';
         
-        // 画面に収まるように表示サイズを決定
+        const nw = img.naturalWidth;
+        const nh = img.naturalHeight;
+        const imgRatio = nw / nh;
+        
+        // 画面に収まる表示サイズを計算
         let displayWidth, displayHeight;
         if (imgRatio > (containerRect.width / containerRect.height)) {
             displayWidth = containerRect.width;
@@ -1885,11 +1887,10 @@ let baseBoxHeight = 0;
             displayWidth = displayHeight * imgRatio;
         }
         
-        // 基準値を保存
         baseImageWidth = displayWidth;
         baseImageHeight = displayHeight;
         
-        // クロップ枠（青い枠）の初期サイズ計算
+        // 枠のサイズを固定値で決定
         if (imgRatio > TARGET_RATIO) {
             baseBoxHeight = baseImageHeight;
             baseBoxWidth = baseBoxHeight * TARGET_RATIO;
@@ -1898,11 +1899,13 @@ let baseBoxHeight = 0;
             baseBoxHeight = baseBoxWidth / TARGET_RATIO;
         }
         
-        // 画面に反映
+        // インラインスタイルでサイズを固定（!important相当の効果）
         selectorImage.style.width = displayWidth + 'px';
         selectorImage.style.height = displayHeight + 'px';
         cropBox.style.width = baseBoxWidth + 'px';
         cropBox.style.height = baseBoxHeight + 'px';
+        
+        // 中央配置
         cropBox.style.left = (containerRect.width - baseBoxWidth) / 2 + 'px';
         cropBox.style.top = (containerRect.height - baseBoxHeight) / 2 + 'px';
         
@@ -1919,39 +1922,41 @@ let baseBoxHeight = 0;
     
     const canvas = croppedCanvas;
     const ctx = canvas.getContext('2d');
+
+    // キャンバスを一旦完全にリセット（Safariのメモリ対策）
     canvas.width = TARGET_WIDTH;
     canvas.height = TARGET_HEIGHT;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     const nw = img.naturalWidth;
     const nh = img.naturalHeight;
-    
-    // 「画面上の画像」に対する「クロップ枠」の相対的な比率を出す
-    // これならRetinaだろうがスマホだろうが、比率は絶対に変わりません
-    const widthRatio = baseBoxWidth / (baseImageWidth * zoomLevel);
-    const heightRatio = baseBoxHeight / (baseImageHeight * zoomLevel);
 
-    // 実寸画像から切り出す幅と高さ
-    const sw = nw * widthRatio;
-    const sh = nh * heightRatio;
+    // --- 比率計算の核心 ---
+    // 「今、枠の中に見えている実寸の幅」を計算
+    // これを TARGET_WIDTH (1920等) に変換するため、比率を固定します
+    const currentVisibleWidthOnImg = (baseBoxWidth / (baseImageWidth * zoomLevel)) * nw;
+    const currentVisibleHeightOnImg = (baseBoxHeight / (baseImageHeight * zoomLevel)) * nh;
 
-    // 移動比率
-    const moveXRatio = imagePanX / (baseImageWidth * zoomLevel);
-    const moveYRatio = imagePanY / (baseImageHeight * zoomLevel);
+    // 移動量の反映
+    const offsetX = (imagePanX / (baseImageWidth * zoomLevel)) * nw;
+    const offsetY = (imagePanY / (baseImageHeight * zoomLevel)) * nh;
 
-    // 切り出し開始位置
-    const sx = (nw / 2) - (sw / 2) - (nw * moveXRatio);
-    const sy = (nh / 2) - (sh / 2) - (nh * moveYRatio);
+    const sx = (nw / 2) - (currentVisibleWidthOnImg / 2) - offsetX;
+    const sy = (nh / 2) - (currentVisibleHeightOnImg / 2) - offsetY;
 
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    // 背景黒塗り
     ctx.fillStyle = "#000000";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillRect(0, 0, TARGET_WIDTH, TARGET_HEIGHT);
 
+    // Safariでの歪みを防ぐため、あえて計算を整数に丸めてから描画
     ctx.drawImage(
         img, 
-        sx, sy, sw, sh,
+        Math.floor(sx), Math.floor(sy), 
+        Math.floor(currentVisibleWidthOnImg), Math.floor(currentVisibleHeightOnImg),
         0, 0, TARGET_WIDTH, TARGET_HEIGHT
     );
 
+    // 最後にプレビューを更新
     croppedPreview.src = canvas.toDataURL('image/png');
 }
     // --- 修正版セット（ここまで） ---
