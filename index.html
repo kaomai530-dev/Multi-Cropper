@@ -1940,7 +1940,7 @@ let baseBoxHeight = 0;
     if (!canvas || !preview) return;
     const ctx = canvas.getContext('2d');
 
-    // 1. サイズ設定（偶数）
+    // 1. 出力サイズを偶数で確定
     const outW = 1920;
     const outH = 818; 
     canvas.width = outW;
@@ -1963,10 +1963,12 @@ let baseBoxHeight = 0;
     ctx.fillRect(0, 0, outW, outH);
     ctx.drawImage(img, sx, sy, sw, sh, 0, 0, outW, outH);
 
-    // 3. 反映（!重要! 変な記号を付けず、最も標準的な書き方に戻します）
+    // 3. 【復旧の要】Safariが拒絶した記号を削除し、最も標準的な形式で反映
     preview.src = canvas.toDataURL('image/png');
     
-    // 文字も戻しておく
+    // 4. Safariの表示枠をリセット
+    preview.style.height = 'auto';
+
     const label = document.getElementById('croppedLabel');
     if (label) label.textContent = `クロップ後（1920×818）`;
 }
