@@ -1897,55 +1897,46 @@
     }
     // Crop image
         function cropImage(img) {
-        if (!img || !baseImageWidth || baseImageWidth === 0) return;
+        if (!img) return;
         
         const canvas = croppedCanvas;
         const ctx = canvas.getContext('2d');
+
+        // キャンバスのサイズを固定
         canvas.width = TARGET_WIDTH;
         canvas.height = TARGET_HEIGHT;
 
-        // 実画像と、100%表示時の画面サイズの比率
-        const nw = img.naturalWidth;
-        const nh = img.naturalHeight;
-        const scale = nw / baseImageWidth;
+        // 1. 画面上の「画像そのもの」と「青い枠」のリアルな位置をブラウザから取得
+        const imgRect = selectorImage.getBoundingClientRect();
+        const boxRect = cropBox.getBoundingClientRect();
 
-        // 【最重要】swとshの計算に「全く同じ比率」を適用して、横伸びを完全に封じます
-        // 枠のピクセル数にスケールを掛け、現在のズームで割ることで「実画像上の切り取り範囲」を出します
-        const sw = (cropBox.offsetWidth * scale) / zoomLevel;
-        const sh = (cropBox.offsetHeight * scale) / zoomLevel;
+        // 2. 画像の「実際の解像度」と「画面上の表示サイズ」の比率を出す
+        const horizontalScale = img.naturalWidth / imgRect.width;
+        const verticalScale = img.naturalHeight / imgRect.height;
 
-        // 移動量の計算
-        const dx = (imagePanX * scale) / zoomLevel;
-        const dy = (imagePanY * scale) / zoomLevel;
+        // 3. 青い枠が「画像」のどの位置にあるかを、実寸ピクセルに変換
+        // 画像の左端から枠の左端までの距離 × スケール
+        const sx = (boxRect.left - imgRect.left) * horizontalScale;
+        const sy = (boxRect.top - imgRect.top) * verticalScale;
+        
+        // 枠の幅・高さ × スケール
+        const sw = boxRect.width * horizontalScale;
+        const sh = boxRect.height * verticalScale;
 
-        // 切り出し開始位置（中心基準）
-        const sx = (nw / 2) - (sw / 2) - dx;
-        const sy = (nh / 2) - (sh / 2) - dy;
-
-        // 背景を真っ黒で塗りつぶし
+        // 4. キャンバスを真っ黒に塗りつぶす（画像が枠より小さい時の余白用）
         ctx.fillStyle = "#000000";
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        // 描画実行
-        ctx.drawImage(img, sx, sy, sw, sh, 0, 0, TARGET_WIDTH, TARGET_HEIGHT);
+        // 5. 描画（ここが重要）
+        // 以前の計算式を捨て、ブラウザから取得した生の比率（sx, sy, sw, sh）で描画します
+        ctx.drawImage(
+            img,
+            sx, sy, sw, sh,
+            0, 0, TARGET_WIDTH, TARGET_HEIGHT
+        );
+
         croppedPreview.src = canvas.toDataURL('image/png');
     }
-    // Download - Show modal with image
-    downloadBtn.addEventListener('click', () => {
-        downloadImage.innerHTML = `<img src="${croppedPreview.src}" style="max-width: 100%; border-radius: 10px; border: 2px solid rgba(102, 126, 234, 0.3);" alt="Cropped Image">`;
-        downloadModal.classList.add('show');
-    });
-
-    // Close modal
-    closeModal.addEventListener('click', () => {
-        downloadModal.classList.remove('show');
-    });
-
-    downloadModal.addEventListener('click', (e) => {
-        if (e.target === downloadModal) {
-            downloadModal.classList.remove('show');
-        }
-    });
 
     // Reset
     resetBtn.addEventListener('click', () => {
