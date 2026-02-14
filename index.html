@@ -1940,15 +1940,14 @@ let baseBoxHeight = 0;
     if (!canvas || !preview) return;
     const ctx = canvas.getContext('2d');
 
-    // 出力サイズ（偶数でSafariの計算ミスを防止）
-    const outW = 1920;
-    const outH = 818; 
-
-    // 【最重要】Safariのメモリに残っている「前の比率」を一度完全に消去
+    // 1. Safariの「歪んだ記憶」を消すため、キャンバスとプレビューを一度リセット
     canvas.width = 0;
     canvas.height = 0;
-    
-    // 改めて正しいサイズを設定
+    preview.style.height = 'auto'; 
+
+    // 2. 正しいサイズを設定（818で固定）
+    const outW = 1920;
+    const outH = 818; 
     canvas.width = outW;
     canvas.height = outH;
 
@@ -1956,7 +1955,6 @@ let baseBoxHeight = 0;
     const nh = img.naturalHeight;
     const scale = nw / baseImageWidth;
 
-    // 比率計算（すべて四捨五入して整数に）
     const sw = Math.round((baseBoxWidth * scale) / zoomLevel);
     const sh = Math.round((baseBoxHeight * scale) / zoomLevel);
     const dx = Math.round((imagePanX * scale) / zoomLevel);
@@ -1965,19 +1963,19 @@ let baseBoxHeight = 0;
     const sx = Math.round((nw / 2) - (sw / 2) - dx);
     const sy = Math.round((nh / 2) - (sh / 2) - dy);
 
-    // 背景を黒で塗りつぶし
+    // 3. 描画
     ctx.fillStyle = "#000000";
     ctx.fillRect(0, 0, outW, outH);
-
-    // 描画
     ctx.drawImage(img, sx, sy, sw, sh, 0, 0, outW, outH);
-       
-       // --- ここを追加 ---
-    preview.style.height = 'auto'; 
-    // -----------------
 
-    // 出力（Safariに「新しい画像」であることを強調するためにURLにタイムスタンプを付加）
-    preview.src = canvas.toDataURL('image/png') + '#' + new Date().getTime();
+    // 4. 【重要】Safariに「新しい画像だ」と無理やり誤認させるため、URLを毎回変える
+    // これにより、Safariが以前の歪んだ比率を適用するのを防ぎます
+    const timestamp = new Date().getTime();
+    preview.src = canvas.toDataURL('image/png') + '?t=' + timestamp;
+
+    // 5. ラベルの文字も 818 に更新して、計算が正しいことを視覚的に保証する
+    const label = document.getElementById('croppedLabel');
+    if (label) label.textContent = `クロップ後（1920×818）`;
 }
     // --- 修正版セット（ここまで） ---
     resetBtn.addEventListener('click', () => {
