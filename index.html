@@ -527,12 +527,12 @@
     display: block;
     margin: 10px auto;
 
-    /* --- Safariとスマホの横伸びを物理的に防ぐ設定 --- */
-    width: 100% !important;        /* 横幅を親要素に合わせる */
-    max-width: 600px;              /* 必要以上に大きくしない */
-    height: auto !important;       /* 高さを自動（比率維持）に強制 */
-    object-fit: contain !important; /* 画像の比率が壊れるのを禁止 */
-    aspect-ratio: 2.35 / 1;        /* Safariにあらかじめ比率を教え込む */
+    /* --- Safari対策の核心 --- */
+    width: 100% !important;        /* 親要素の幅に合わせる */
+    max-width: 800px;              /* PCで見るときに小さくなりすぎないサイズ */
+    height: auto !important;       /* 高さは比率に任せる */
+    aspect-ratio: 1920 / 818;      /* 枠の形を1920:818に固定（Safariに形を教え込む） */
+    object-fit: contain !important; /* 画像が歪むくらいなら、余白を残すように命令 */
 }
     .download-modal {
         display: none;
@@ -1928,49 +1928,47 @@ let baseBoxHeight = 0;
     };
 }
    function cropImage(img) {
-    // データがない場合は処理を中断（エラー防止）
     if (!img || !baseImageWidth || !baseBoxWidth) return;
     
-    // canvasとcontextを取得
     const canvas = document.getElementById('croppedCanvas');
-    if (!canvas) return; 
+    const preview = document.getElementById('croppedPreview');
+    if (!canvas || !preview) return;
     const ctx = canvas.getContext('2d');
 
-    // --- Safariの横伸びバグを物理的に解決する3ステップ ---
-
-    // 1. キャンバスのサイズを完全にリセット（Safariのメモリを掃除）
-    canvas.width = 0;
-    canvas.height = 0;
-
-    // 2. 新しいサイズをセット（偶数にしてSafariの計算ミスを防ぐ）
+    // 出力サイズ（偶数でSafariの計算ミスを防止）
     const outW = 1920;
     const outH = 818; 
+
+    // 【最重要】Safariのメモリに残っている「前の比率」を一度完全に消去
+    canvas.width = 0;
+    canvas.height = 0;
+    
+    // 改めて正しいサイズを設定
     canvas.width = outW;
     canvas.height = outH;
 
-    // 3. 切り抜き位置の計算
     const nw = img.naturalWidth;
     const nh = img.naturalHeight;
     const scale = nw / baseImageWidth;
 
-    const sw = (baseBoxWidth * scale) / zoomLevel;
-    const sh = (baseBoxHeight * scale) / zoomLevel;
-    const dx = (imagePanX * scale) / zoomLevel;
-    const dy = (imagePanY * scale) / zoomLevel;
+    // 比率計算（すべて四捨五入して整数に）
+    const sw = Math.round((baseBoxWidth * scale) / zoomLevel);
+    const sh = Math.round((baseBoxHeight * scale) / zoomLevel);
+    const dx = Math.round((imagePanX * scale) / zoomLevel);
+    const dy = Math.round((imagePanY * scale) / zoomLevel);
 
-    const sx = (nw / 2) - (sw / 2) - dx;
-    const sy = (nh / 2) - (sh / 2) - dy;
+    const sx = Math.round((nw / 2) - (sw / 2) - dx);
+    const sy = Math.round((nh / 2) - (sh / 2) - dy);
 
-    // 背景を黒で塗る
+    // 背景を黒で塗りつぶし
     ctx.fillStyle = "#000000";
     ctx.fillRect(0, 0, outW, outH);
 
-    // 画像を描画（Safariの歪みを防ぐため、出力サイズを直接指定）
+    // 描画
     ctx.drawImage(img, sx, sy, sw, sh, 0, 0, outW, outH);
 
-    // プレビューに反映（キャッシュ対策のゴミを付けないシンプルな形式に戻します）
-    const dataUrl = canvas.toDataURL('image/png');
-    document.getElementById('croppedPreview').src = dataUrl;
+    // 出力（Safariに「新しい画像」であることを強調するためにURLにタイムスタンプを付加）
+    preview.src = canvas.toDataURL('image/png') + '#' + new Date().getTime();
 }
     // --- 修正版セット（ここまで） ---
     resetBtn.addEventListener('click', () => {
