@@ -1911,49 +1911,42 @@
         canvas.width = TARGET_WIDTH;
         canvas.height = TARGET_HEIGHT;
 
-        // 元画像の本来のサイズ
-        const naturalWidth = selectorImage.naturalWidth;
-        const naturalHeight = selectorImage.naturalHeight;
+        const naturalWidth = img.naturalWidth;
+        const naturalHeight = img.naturalHeight;
         
-        // 1. ズームがかかっていない状態での「画面上の画像サイズ（ベース）」を基準にする
-        // scaleFactor: 画面上の1pxが、実際の画像（natural）の何pxに相当するか
-        const scaleFactor = naturalWidth / baseImageWidth;
+        // 1. 画面上の表示サイズと実サイズの比率
+        const scale = naturalWidth / baseImageWidth;
         
-        // 2. ズームに合わせて「実際に切り取る範囲の広さ」を計算する
-        // ズームアウト（zoomLevelが小さい）ほど、実際の画像からより広い範囲を切り取る必要がある
-        const sourceWidth = (cropBox.offsetWidth / zoomLevel) * scaleFactor;
-        const sourceHeight = (cropBox.offsetHeight / zoomLevel) * scaleFactor;
+        // 2. クロップ枠のサイズを実サイズに変換
+        // ズームLevelで割ることで、ズームアウト時に広い範囲を取得するようにする
+        const viewWidth = cropBox.offsetWidth / zoomLevel;
+        const viewHeight = cropBox.offsetHeight / zoomLevel;
         
-        // 3. 切り取り開始位置（左上座標）を計算
-        // 画像の中心からのズレ（Pan）を考慮して算出
-        const centerX = naturalWidth / 2;
-        const centerY = naturalHeight / 2;
+        const sourceWidth = viewWidth * scale;
+        const sourceHeight = viewHeight * scale;
         
-        // 画面上のズレ（imagePanX）を実際の画像サイズに変換
-        const actualPanX = (imagePanX / zoomLevel) * scaleFactor;
-        const actualPanY = (imagePanY / zoomLevel) * scaleFactor;
+        // 3. パン（移動）を考慮した中心位置の計算
+        // 画像の中心から、移動量（Pan）を実サイズに変換して引く
+        const actualPanX = (imagePanX / zoomLevel) * scale;
+        const actualPanY = (imagePanY / zoomLevel) * scale;
         
-        // 切り取り開始位置 = 中心 - (切り取る幅の半分) - パンの移動量
-        let sourceX = (centerX - (sourceWidth / 2)) - actualPanX;
-        let sourceY = (centerY - (sourceHeight / 2)) - actualPanY;
+        const sourceX = (naturalWidth / 2) - (sourceWidth / 2) - actualPanX;
+        const sourceY = (naturalHeight / 2) - (sourceHeight / 2) - actualPanY;
 
-        // 背景をクリア（余白が出た時に引き伸ばさないようにする）
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        
-        // もし黒背景を維持したい場合は、塗りつぶしを追加
+        // キャンバスをクリアして黒で塗る（画像がない場所を黒にする）
         ctx.fillStyle = "#000000";
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        // 4. 描画
+        // 4. 描画（ここがポイント：比率を維持して描画）
+        // ズームアウトして画像が枠より小さくなっても、引き伸ばさないように計算
         ctx.drawImage(
             img,
-            sourceX, sourceY, sourceWidth, sourceHeight, // 元画像のこの範囲を
-            0, 0, TARGET_WIDTH, TARGET_HEIGHT           // クロップ後の枠いっぱいに描画
+            sourceX, sourceY, sourceWidth, sourceHeight,
+            0, 0, TARGET_WIDTH, TARGET_HEIGHT
         );
 
         croppedPreview.src = canvas.toDataURL('image/png');
     }
-
 
     // Download - Show modal with image
     downloadBtn.addEventListener('click', () => {
