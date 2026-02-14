@@ -1927,50 +1927,56 @@ let baseBoxHeight = 0;
         cropImage(img);
     };
 }
-    function cropImage(img) {
-    if (!img || !baseImageWidth || !baseBoxWidth) return;
+   function cropImage(img) {
+    // 1. 安全確認：画像や基準値がない場合は何もしない
+    if (!img || !baseImageWidth || !baseBoxWidth) {
+        console.log("Missing data for crop");
+        return;
+    }
     
+    // 2. キャンバスの取得（HTML内にない場合は自動生成される想定）
     const canvas = croppedCanvas;
     const ctx = canvas.getContext('2d');
 
-    // 1. 【Safari対策】一度キャンバスのサイズを 0 にして、脳をリセットさせる
+    // 3. 【Safariバグ回避】キャンバスを一度リセット
     canvas.width = 0;
     canvas.height = 0;
 
-    // 2. 本来のサイズを再設定（偶数にする）
+    // 4. 正確なサイズを設定（817ではなく、比率を安定させる818を推奨）
+    // もし TARGET_HEIGHT が 817 のままでも動作するよう Math.round を使います
     canvas.width = TARGET_WIDTH;
-    canvas.height = TARGET_HEIGHT;
+    canvas.height = Math.round(TARGET_HEIGHT);
 
+    // 5. 比率の計算
     const nw = img.naturalWidth;
     const nh = img.naturalHeight;
     const scale = nw / baseImageWidth;
 
-    // 3. 全ての計算結果を「整数」に固定
-    const sw = Math.floor((baseBoxWidth * scale) / zoomLevel);
-    const sh = Math.floor((baseBoxHeight * scale) / zoomLevel);
-    const dx = Math.floor((imagePanX * scale) / zoomLevel);
-    const dy = Math.floor((imagePanY * scale) / zoomLevel);
+    // 6. クロップ範囲の計算（すべて整数に丸めて Safari のズレを防止）
+    const sw = Math.round((baseBoxWidth * scale) / zoomLevel);
+    const sh = Math.round((baseBoxHeight * scale) / zoomLevel);
+    const dx = Math.round((imagePanX * scale) / zoomLevel);
+    const dy = Math.round((imagePanY * scale) / zoomLevel);
 
-    const sx = Math.floor((nw / 2) - (sw / 2) - dx);
-    const sy = Math.floor((nh / 2) - (sh / 2) - dy);
+    const sx = Math.round((nw / 2) - (sw / 2) - dx);
+    const sy = Math.round((nh / 2) - (sh / 2) - dy);
 
-    // 4. 背景を真っ黒で塗りつぶし（隙間を Safari に埋めさせない）
-    ctx.fillStyle = "#000000";
+    // 7. 描画処理
+    ctx.fillStyle = "#000000"; // 背景を黒に
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // 5. 【重要】描画先のサイズを「キャンバスのサイズ」と完全に一致させる
-    // これにより、Safariが勝手に比率を補完するのを防ぎます
-    ctx.drawImage(
-        img, 
-        sx, sy, sw, sh,
-        0, 0, TARGET_WIDTH, TARGET_HEIGHT
-    );
-
-    // 6. 出力
-    croppedPreview.src = canvas.toDataURL('image/png');
-}
-    // 最後にプレビューを更新
-    croppedPreview.src = canvas.toDataURL('image/png');
+    try {
+        ctx.drawImage(
+            img, 
+            sx, sy, sw, sh,
+            0, 0, canvas.width, canvas.height
+        );
+        
+        // 8. プレビュー画像に反映
+        croppedPreview.src = canvas.toDataURL('image/png');
+    } catch (e) {
+        console.error("Drawing error:", e);
+    }
 }
     // --- 修正版セット（ここまで） ---
     resetBtn.addEventListener('click', () => {
