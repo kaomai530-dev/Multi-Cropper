@@ -1904,27 +1904,21 @@ let baseBoxHeight = 0;
 
     const nw = img.naturalWidth;
     const nh = img.naturalHeight;
-    
-    // 画面上の1pxが実寸の何pxにあたるか（100%時）
     const scale = nw / baseImageWidth;
 
-    // Safari対策：画面から取得せず、保存しておいた「数値」から計算
-    // これにより横と縦の比率が「ズレる隙」をなくします
+    // Safariの不安定な「表示上のサイズ」を無視し、保存した「純粋な数値」だけで計算します
     const sw = (baseBoxWidth * scale) / zoomLevel;
     const sh = (baseBoxHeight * scale) / zoomLevel;
 
-    // 移動量の計算（ここもzoomLevelで割ることで同期）
     const dx = (imagePanX * scale) / zoomLevel;
     const dy = (imagePanY * scale) / zoomLevel;
 
-    // 中心からの開始位置
     const sx = (nw / 2) - (sw / 2) - dx;
     const sy = (nh / 2) - (sh / 2) - dy;
 
     ctx.fillStyle = "#000000";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // 描画
     ctx.drawImage(img, sx, sy, sw, sh, 0, 0, TARGET_WIDTH, TARGET_HEIGHT);
     croppedPreview.src = canvas.toDataURL('image/png');
 }
