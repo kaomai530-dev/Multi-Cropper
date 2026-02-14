@@ -1928,55 +1928,49 @@ let baseBoxHeight = 0;
     };
 }
    function cropImage(img) {
-    // 1. 安全確認：画像や基準値がない場合は何もしない
-    if (!img || !baseImageWidth || !baseBoxWidth) {
-        console.log("Missing data for crop");
-        return;
-    }
+    // データがない場合は処理を中断（エラー防止）
+    if (!img || !baseImageWidth || !baseBoxWidth) return;
     
-    // 2. キャンバスの取得（HTML内にない場合は自動生成される想定）
-    const canvas = croppedCanvas;
+    // canvasとcontextを取得
+    const canvas = document.getElementById('croppedCanvas');
+    if (!canvas) return; 
     const ctx = canvas.getContext('2d');
 
-    // 3. 【Safariバグ回避】キャンバスを一度リセット
+    // --- Safariの横伸びバグを物理的に解決する3ステップ ---
+
+    // 1. キャンバスのサイズを完全にリセット（Safariのメモリを掃除）
     canvas.width = 0;
     canvas.height = 0;
 
-    // 4. 正確なサイズを設定（817ではなく、比率を安定させる818を推奨）
-    // もし TARGET_HEIGHT が 817 のままでも動作するよう Math.round を使います
-    canvas.width = TARGET_WIDTH;
-    canvas.height = Math.round(TARGET_HEIGHT);
+    // 2. 新しいサイズをセット（偶数にしてSafariの計算ミスを防ぐ）
+    const outW = 1920;
+    const outH = 818; 
+    canvas.width = outW;
+    canvas.height = outH;
 
-    // 5. 比率の計算
+    // 3. 切り抜き位置の計算
     const nw = img.naturalWidth;
     const nh = img.naturalHeight;
     const scale = nw / baseImageWidth;
 
-    // 6. クロップ範囲の計算（すべて整数に丸めて Safari のズレを防止）
-    const sw = Math.round((baseBoxWidth * scale) / zoomLevel);
-    const sh = Math.round((baseBoxHeight * scale) / zoomLevel);
-    const dx = Math.round((imagePanX * scale) / zoomLevel);
-    const dy = Math.round((imagePanY * scale) / zoomLevel);
+    const sw = (baseBoxWidth * scale) / zoomLevel;
+    const sh = (baseBoxHeight * scale) / zoomLevel;
+    const dx = (imagePanX * scale) / zoomLevel;
+    const dy = (imagePanY * scale) / zoomLevel;
 
-    const sx = Math.round((nw / 2) - (sw / 2) - dx);
-    const sy = Math.round((nh / 2) - (sh / 2) - dy);
+    const sx = (nw / 2) - (sw / 2) - dx;
+    const sy = (nh / 2) - (sh / 2) - dy;
 
-    // 7. 描画処理
-    ctx.fillStyle = "#000000"; // 背景を黒に
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    // 背景を黒で塗る
+    ctx.fillStyle = "#000000";
+    ctx.fillRect(0, 0, outW, outH);
 
-    try {
-        ctx.drawImage(
-            img, 
-            sx, sy, sw, sh,
-            0, 0, canvas.width, canvas.height
-        );
-        
-        // 8. プレビュー画像に反映
-        croppedPreview.src = canvas.toDataURL('image/png');
-    } catch (e) {
-        console.error("Drawing error:", e);
-    }
+    // 画像を描画（Safariの歪みを防ぐため、出力サイズを直接指定）
+    ctx.drawImage(img, sx, sy, sw, sh, 0, 0, outW, outH);
+
+    // プレビューに反映（キャッシュ対策のゴミを付けないシンプルな形式に戻します）
+    const dataUrl = canvas.toDataURL('image/png');
+    document.getElementById('croppedPreview').src = dataUrl;
 }
     // --- 修正版セット（ここまで） ---
     resetBtn.addEventListener('click', () => {
