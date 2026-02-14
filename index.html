@@ -1902,38 +1902,43 @@
         const canvas = croppedCanvas;
         const ctx = canvas.getContext('2d');
 
-        // キャンバスのサイズを固定
         canvas.width = TARGET_WIDTH;
         canvas.height = TARGET_HEIGHT;
 
-        // 1. 画面上の「画像そのもの」と「青い枠」のリアルな位置をブラウザから取得
+        // 1. 画面上の「画像そのもの」と「青い枠」の座標を取得
         const imgRect = selectorImage.getBoundingClientRect();
         const boxRect = cropBox.getBoundingClientRect();
 
-        // 2. 画像の「実際の解像度」と「画面上の表示サイズ」の比率を出す
-        const horizontalScale = img.naturalWidth / imgRect.width;
-        const verticalScale = img.naturalHeight / imgRect.height;
+        // 2. 実寸(natural)と表示寸(rect)のスケール比
+        const nw = img.naturalWidth;
+        const nh = img.naturalHeight;
+        const scaleX = nw / imgRect.width;
+        const scaleY = nh / imgRect.height;
 
-        // 3. 青い枠が「画像」のどの位置にあるかを、実寸ピクセルに変換
-        // 画像の左端から枠の左端までの距離 × スケール
-        const sx = (boxRect.left - imgRect.left) * horizontalScale;
-        const sy = (boxRect.top - imgRect.top) * verticalScale;
-        
-        // 枠の幅・高さ × スケール
-        const sw = boxRect.width * horizontalScale;
-        const sh = boxRect.height * verticalScale;
+        // 3. 「枠」の座標を「画像」の座標系に変換
+        // 枠が画像の外（黒い部分）にある場合、sxやsyはマイナスになります
+        const sx = (boxRect.left - imgRect.left) * scaleX;
+        const sy = (boxRect.top - imgRect.top) * scaleY;
+        const sw = boxRect.width * scaleX;
+        const sh = boxRect.height * scaleY;
 
-        // 4. キャンバスを真っ黒に塗りつぶす（画像が枠より小さい時の余白用）
+        // 4. 背景を真っ黒に塗る
         ctx.fillStyle = "#000000";
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        // 5. 描画（ここが重要）
-        // 以前の計算式を捨て、ブラウザから取得した生の比率（sx, sy, sw, sh）で描画します
+        // 5. 【ここが修正の鍵】
+        // 画像をキャンバスの「どこに」「どのサイズで」描画するかを計算
+        // sw, sh（切り取り範囲）がキャンバスの比率と同じになるように描画します
         ctx.drawImage(
             img,
-            sx, sy, sw, sh,
-            0, 0, TARGET_WIDTH, TARGET_HEIGHT
+            sx, sy, sw, sh,             // ソース（元画像の切り取り範囲）
+            0, 0, canvas.width, canvas.height // デスティネーション（キャンバスの全域）
         );
+
+        // もしこれでも伸びる場合は、アスペクト比を強制固定して描画
+        // 画像の縦横比を維持したまま、キャンバス内に収めます
+        croppedPreview.src = canvas.toDataURL('image/png');
+    }
 
         croppedPreview.src = canvas.toDataURL('image/png');
     }
