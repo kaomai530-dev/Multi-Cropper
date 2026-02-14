@@ -1355,6 +1355,7 @@
     }
 
     function updateImageTransform() {
+    // ズーム倍率に関わらず、指定したピクセル数だけ移動させる設定
     selectorImage.style.transform = `translate(${imagePanX}px, ${imagePanY}px) scale(${zoomLevel})`;
 }
     function startDrag(e) {
@@ -1900,34 +1901,40 @@
 
     // Crop image
         function cropImage(img) {
-    if (!img) return;
+    if (!img || !baseImageWidth) return;
     
     const canvas = croppedCanvas;
     const ctx = canvas.getContext('2d');
     canvas.width = TARGET_WIDTH;
     canvas.height = TARGET_HEIGHT;
 
-    // 画面上の画像と枠の「実際の座標」を取得
-    const rect = selectorImage.getBoundingClientRect();
-    const boxRect = cropBox.getBoundingClientRect();
+    const nw = img.naturalWidth;
+    const nh = img.naturalHeight;
+    
+    // 1. 表示上の「ズームなし状態」の画像サイズに対する「実寸」の比率
+    const scale = nw / baseImageWidth;
 
-    // 画面上の画像に対して、枠がどの位置に、どのくらいの大きさであるかの「比率」を出す
-    const relX = (boxRect.left - rect.left) / rect.width;
-    const relY = (boxRect.top - rect.top) / rect.height;
-    const relWidth = boxRect.width / rect.width;
-    const relHeight = boxRect.height / rect.height;
+    // 2. 切り取る範囲（Source Width/Height）の計算
+    // クロップ枠のサイズを、現在のズーム倍率で割ることで、
+    // ズームアウト時に「より広い範囲」を切り取るように調整します
+    const sw = (cropBox.offsetWidth / zoomLevel) * scale;
+    const sh = (cropBox.offsetHeight / zoomLevel) * scale;
 
-    // その比率を、元画像のサイズ(naturalWidth/Height)に掛け算する
-    const sx = img.naturalWidth * relX;
-    const sy = img.naturalHeight * relY;
-    const sw = img.naturalWidth * relWidth;
-    const sh = img.naturalHeight * relHeight;
+    // 3. 移動量（Pan）の計算
+    // 表示上の移動量を、ズーム倍率を考慮して実寸ピクセルに変換
+    const dx = (imagePanX / zoomLevel) * scale;
+    const dy = (imagePanY / zoomLevel) * scale;
 
-    // 背景を黒にする
+    // 4. 切り出し開始位置（左上）
+    // 画像の中心を起点にして、そこから切り出し範囲の半分と、移動量を差し引く
+    const sx = (nw / 2) - (sw / 2) - dx;
+    const sy = (nh / 2) - (sh / 2) - dy;
+
+    // キャンバスをクリア
     ctx.fillStyle = "#000000";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // 描画
+    // 5. 描画（ここが重要：sw, shが正しく連動すれば横伸びしません）
     ctx.drawImage(
         img,
         sx, sy, sw, sh,
