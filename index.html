@@ -1856,51 +1856,50 @@
         }, 200);
     });
 
-    // Setup crop selector
+   // Setup crop selector
     function setupCropSelector(img) {
         selectorImage.src = img.src;
         
         selectorImage.onload = () => {
             const containerRect = cropSelector.getBoundingClientRect();
             
-            // ズームや移動が適用される前の「生の表示サイズ」を正確に取得します
+            // 1. ズームなどがかかる前の「初期表示サイズ」を正確に取得
             const imageRect = selectorImage.getBoundingClientRect();
             
-            // baseImageWidth と baseImageHeight を正しく保存
+            // 2. グローバル変数にベースサイズを保存（displayedWidthを使わず直接代入）
             baseImageWidth = imageRect.width;
             baseImageHeight = imageRect.height;
             
             const imgRatio = img.width / img.height;
             
-            const imgRatio = img.width / img.height;
-            
+            // 3. クロップ枠の初期サイズ計算
             let boxWidth, boxHeight;
             if (imgRatio > TARGET_RATIO) {
-                boxHeight = displayedHeight;
+                boxHeight = baseImageHeight;
                 boxWidth = boxHeight * TARGET_RATIO;
             } else {
-                boxWidth = displayedWidth;
+                boxWidth = baseImageWidth;
                 boxHeight = boxWidth / TARGET_RATIO;
             }
             
             cropBox.style.width = boxWidth + 'px';
             cropBox.style.height = boxHeight + 'px';
             
+            // 4. 枠を中央に配置
             cropBox.style.left = (containerRect.width - boxWidth) / 2 + 'px';
             cropBox.style.top = (containerRect.height - boxHeight) / 2 + 'px';
             
+            // 5. 状態のリセット
             zoomLevel = 1;
             imagePanX = 0;
             imagePanY = 0;
             updateImageTransform();
-            
             updateCustomCropPosition();
             
-            // Auto-crop after setup is complete
+            // 6. 初回のクロップ実行
             cropImage(img);
         };
     }
-
     // Crop image
         function cropImage(img) {
     if (!img || !baseImageWidth) return;
