@@ -1862,8 +1862,9 @@
         
         selectorImage.onload = () => {
             const containerRect = cropSelector.getBoundingClientRect();
-            const imageRect = selectorImage.getBoundingClientRect();
-            const displayedWidth = imageRect.width;
+            // setupCropSelector関数内
+const imageRect = selectorImage.getBoundingClientRect();
+baseImageWidth = imageRect.width; // ここで「ズーム100%時」の幅が保存されている必要があります
             const displayedHeight = imageRect.height;
             
             // Store base dimensions (before any transform)
