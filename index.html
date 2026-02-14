@@ -523,14 +523,17 @@
 
    #croppedPreview {
     border: 2px solid rgba(102, 126, 234, 0.3);
-    max-width: 100%;
-    height: auto !important; /* !importantを追加して強制力を高めます */
-    object-fit: contain;      /* これがSafariの横伸びを防ぐ決定打です */
     border-radius: 8px;
-    display: block;           /* 配置を安定させます */
-    margin: 0 auto;           /* 中央に配置します */
-}
+    display: block;
+    margin: 10px auto;
 
+    /* --- Safariとスマホの横伸びを物理的に防ぐ設定 --- */
+    width: 100% !important;        /* 横幅を親要素に合わせる */
+    max-width: 600px;              /* 必要以上に大きくしない */
+    height: auto !important;       /* 高さを自動（比率維持）に強制 */
+    object-fit: contain !important; /* 画像の比率が壊れるのを禁止 */
+    aspect-ratio: 2.35 / 1;        /* Safariにあらかじめ比率を教え込む */
+}
     .download-modal {
         display: none;
         position: fixed;
@@ -867,16 +870,23 @@
 
 <script>
     // Aspect ratio presets
-    const RATIOS = {
-        '2.844': { width: 2844, height: 1000, name: 'Ultra Wide', ratio: 2.844 },
-        '2.35': { width: 1920, height: 817, name: 'Cinemascope', ratio: 2.35 },
-        '1': { width: 1080, height: 1080, name: 'Square', ratio: 1 }
-    };
+    // この塊を探してください（500〜850行目のどこかにあるはずです）
+const RATIOS = {
+    '2.35': {
+        name: '2.35:1',
+        desc: 'シネマスコープ',
+        width: 1920,
+        height: 818,      // ← ここを 817 から 818 に書き換える！
+        ratio: 1920 / 818 // ← 計算式も念のためこうしておくと確実です
+    },
+    // 他の比率があればそのまま ...
+};
 
-    let currentRatio = '2.35';
-    let TARGET_WIDTH = RATIOS[currentRatio].width;
-    let TARGET_HEIGHT = RATIOS[currentRatio].height;
-    let TARGET_RATIO = RATIOS[currentRatio].ratio;
+   let currentRatio = '2.35';
+let TARGET_WIDTH = RATIOS[currentRatio].width;
+let TARGET_HEIGHT = RATIOS[currentRatio].height;
+// ここを書き換え：固定された数値ではなく、その場で計算させる
+let TARGET_RATIO = TARGET_WIDTH / TARGET_HEIGHT;
 
     let currentImage = null;
     let originalImage = null; // Store original unprocessed image
