@@ -1863,19 +1863,33 @@ let baseBoxHeight = 0;
 
    // --- 修正版セット（ここから） ---
 
-    function setupCropSelector(img) {
+   function setupCropSelector(img) {
     selectorImage.src = img.src;
     
     selectorImage.onload = () => {
+        // コンテナのサイズだけはブラウザから取得（これはズレない）
         const containerRect = cropSelector.getBoundingClientRect();
-        const imageRect = selectorImage.getBoundingClientRect();
         
-        baseImageWidth = imageRect.width;
-        baseImageHeight = imageRect.height;
+        // 【重要】ブラウザの表示サイズ（getBoundingClientRect）を使わず
+        // 画像の「真の実寸」をベースに、画面上の「100%表示サイズ」を自前で計算する
+        // これによりRetinaディスプレイやスマホの倍率問題を強制排除します
+        const imgRatio = img.naturalWidth / img.naturalHeight;
         
-        const imgRatio = img.width / img.height;
+        // 画面に収まるように表示サイズを決定
+        let displayWidth, displayHeight;
+        if (imgRatio > (containerRect.width / containerRect.height)) {
+            displayWidth = containerRect.width;
+            displayHeight = displayWidth / imgRatio;
+        } else {
+            displayHeight = containerRect.height;
+            displayWidth = displayHeight * imgRatio;
+        }
         
-        // 【重要】ここで「計算用の数値」をメモします
+        // 基準値を保存
+        baseImageWidth = displayWidth;
+        baseImageHeight = displayHeight;
+        
+        // クロップ枠（青い枠）の初期サイズ計算
         if (imgRatio > TARGET_RATIO) {
             baseBoxHeight = baseImageHeight;
             baseBoxWidth = baseBoxHeight * TARGET_RATIO;
@@ -1884,6 +1898,9 @@ let baseBoxHeight = 0;
             baseBoxHeight = baseBoxWidth / TARGET_RATIO;
         }
         
+        // 画面に反映
+        selectorImage.style.width = displayWidth + 'px';
+        selectorImage.style.height = displayHeight + 'px';
         cropBox.style.width = baseBoxWidth + 'px';
         cropBox.style.height = baseBoxHeight + 'px';
         cropBox.style.left = (containerRect.width - baseBoxWidth) / 2 + 'px';
@@ -1902,39 +1919,36 @@ let baseBoxHeight = 0;
     
     const canvas = croppedCanvas;
     const ctx = canvas.getContext('2d');
-
-    // 1. キャンバスサイズを物理的に固定
     canvas.width = TARGET_WIDTH;
     canvas.height = TARGET_HEIGHT;
 
-    // 2. 「画面上の100%表示」と「画像の真の実寸」の比率
-    // これがデバイスの「2倍表示(Retina)」などに惑わされない唯一の数値です
     const nw = img.naturalWidth;
     const nh = img.naturalHeight;
-    const scale = nw / baseImageWidth;
+    
+    // 「画面上の画像」に対する「クロップ枠」の相対的な比率を出す
+    // これならRetinaだろうがスマホだろうが、比率は絶対に変わりません
+    const widthRatio = baseBoxWidth / (baseImageWidth * zoomLevel);
+    const heightRatio = baseBoxHeight / (baseImageHeight * zoomLevel);
 
-    // 3. クロップ範囲の計算
-    // offsetWidthなどを使わず、保存しておいた baseBoxWidth（数値）を直接使います
-    const sw = (baseBoxWidth * scale) / zoomLevel;
-    const sh = (baseBoxHeight * scale) / zoomLevel;
+    // 実寸画像から切り出す幅と高さ
+    const sw = nw * widthRatio;
+    const sh = nh * heightRatio;
 
-    // 4. 移動量の計算
-    const dx = (imagePanX * scale) / zoomLevel;
-    const dy = (imagePanY * scale) / zoomLevel;
+    // 移動比率
+    const moveXRatio = imagePanX / (baseImageWidth * zoomLevel);
+    const moveYRatio = imagePanY / (baseImageHeight * zoomLevel);
 
-    // 5. 切り出し開始位置（中心基準）
-    const sx = (nw / 2) - (sw / 2) - dx;
-    const sy = (nh / 2) - (sh / 2) - dy;
+    // 切り出し開始位置
+    const sx = (nw / 2) - (sw / 2) - (nw * moveXRatio);
+    const sy = (nh / 2) - (sh / 2) - (nh * moveYRatio);
 
-    // 6. 描画（Safari/スマホのバグ避け）
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.fillStyle = "#000000";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // 整数に丸めてから描画（Safariの1px未満のバグ対策）
     ctx.drawImage(
         img, 
-        Math.round(sx), Math.round(sy), Math.round(sw), Math.round(sh),
+        sx, sy, sw, sh,
         0, 0, TARGET_WIDTH, TARGET_HEIGHT
     );
 
