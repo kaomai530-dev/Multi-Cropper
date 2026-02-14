@@ -1355,10 +1355,8 @@
     }
 
     function updateImageTransform() {
-        // 移動(translate)を先に、拡大(scale)を後に書くことで、計算をシンプルにします
-        selectorImage.style.transform = `translate(${imagePanX}px, ${imagePanY}px) scale(${zoomLevel})`;
-    }
-
+    selectorImage.style.transform = `translate(${imagePanX}px, ${imagePanY}px) scale(${zoomLevel})`;
+}
     function startDrag(e) {
         if (isPinching) return;
         
@@ -1902,38 +1900,42 @@
 
     // Crop image
         function cropImage(img) {
-        if (!img) return;
-        const canvas = croppedCanvas;
-        const ctx = canvas.getContext('2d');
-        canvas.width = TARGET_WIDTH;
-        canvas.height = TARGET_HEIGHT;
+    if (!img) return;
+    
+    const canvas = croppedCanvas;
+    const ctx = canvas.getContext('2d');
+    canvas.width = TARGET_WIDTH;
+    canvas.height = TARGET_HEIGHT;
 
-        const nw = img.naturalWidth;
-        const nh = img.naturalHeight;
-        const bw = baseImageWidth;
-        const bh = baseImageHeight;
+    // 画面上の画像と枠の「実際の座標」を取得
+    const rect = selectorImage.getBoundingClientRect();
+    const boxRect = cropBox.getBoundingClientRect();
 
-        // ズームLevelに応じて、元画像から切り出す「範囲」を決定
-        const sw = (cropBox.offsetWidth * (nw / bw)) / zoomLevel;
-        const sh = (cropBox.offsetHeight * (nh / bh)) / zoomLevel;
+    // 画面上の画像に対して、枠がどの位置に、どのくらいの大きさであるかの「比率」を出す
+    const relX = (boxRect.left - rect.left) / rect.width;
+    const relY = (boxRect.top - rect.top) / rect.height;
+    const relWidth = boxRect.width / rect.width;
+    const relHeight = boxRect.height / rect.height;
 
-        // 移動量を元画像サイズに換算
-        const dx = (imagePanX * (nw / bw)) / zoomLevel;
-        const dy = (imagePanY * (nh / bh)) / zoomLevel;
+    // その比率を、元画像のサイズ(naturalWidth/Height)に掛け算する
+    const sx = img.naturalWidth * relX;
+    const sy = img.naturalHeight * relY;
+    const sw = img.naturalWidth * relWidth;
+    const sh = img.naturalHeight * relHeight;
 
-        // 中心を起点に切り出し位置を計算
-        const sx = (nw / 2) - (sw / 2) - dx;
-        const sy = (nh / 2) - (sh / 2) - dy;
+    // 背景を黒にする
+    ctx.fillStyle = "#000000";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        ctx.fillStyle = "#000000";
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+    // 描画
+    ctx.drawImage(
+        img,
+        sx, sy, sw, sh,
+        0, 0, TARGET_WIDTH, TARGET_HEIGHT
+    );
 
-        ctx.drawImage(img, sx, sy, sw, sh, 0, 0, TARGET_WIDTH, TARGET_HEIGHT);
-        croppedPreview.src = canvas.toDataURL('image/png');
-    }
-
-        croppedPreview.src = canvas.toDataURL('image/png');
-    }
+    croppedPreview.src = canvas.toDataURL('image/png');
+}
     // Download - Show modal with image
     downloadBtn.addEventListener('click', () => {
         downloadImage.innerHTML = `<img src="${croppedPreview.src}" style="max-width: 100%; border-radius: 10px; border: 2px solid rgba(102, 126, 234, 0.3);" alt="Cropped Image">`;
