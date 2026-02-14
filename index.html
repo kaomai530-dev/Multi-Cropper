@@ -1903,43 +1903,34 @@
     // Crop image
         function cropImage(img) {
         if (!img) return;
-        
         const canvas = croppedCanvas;
         const ctx = canvas.getContext('2d');
-
         canvas.width = TARGET_WIDTH;
         canvas.height = TARGET_HEIGHT;
 
-        const naturalWidth = img.naturalWidth;
-        const naturalHeight = img.naturalHeight;
-        
-        // 1. 画面上の1pxが、実画像の何pxに相当するか（スケール比）
-        const scale = naturalWidth / baseImageWidth;
-        
-        // 2. クロップ枠のサイズを実画像サイズに換算し、さらにズームを適用
-        // ズームアウト（zoomLevel < 1）すると、sourceWidthは大きくなり、広い範囲を映します
-        const sourceWidth = (cropBox.offsetWidth * scale) / zoomLevel;
-        const sourceHeight = (cropBox.offsetHeight * scale) / zoomLevel;
-        
-        // 3. 画像の中心を基準とした切り取り開始位置（左上座標）の計算
-        // パン（移動量）もスケールとズームを考慮して実画像pxに変換
-        const actualPanX = (imagePanX * scale) / zoomLevel;
-        const actualPanY = (imagePanY * scale) / zoomLevel;
-        
-        // 切り取り開始位置 ＝ 画像の中心 － (切り取る幅の半分) － 移動量
-        const sourceX = (naturalWidth / 2) - (sourceWidth / 2) - actualPanX;
-        const sourceY = (naturalHeight / 2) - (sourceHeight / 2) - actualPanY;
+        const nw = img.naturalWidth;
+        const nh = img.naturalHeight;
+        const bw = baseImageWidth;
+        const bh = baseImageHeight;
 
-        // キャンバスをクリア（背景を黒に）
+        // ズームLevelに応じて、元画像から切り出す「範囲」を決定
+        const sw = (cropBox.offsetWidth * (nw / bw)) / zoomLevel;
+        const sh = (cropBox.offsetHeight * (nh / bh)) / zoomLevel;
+
+        // 移動量を元画像サイズに換算
+        const dx = (imagePanX * (nw / bw)) / zoomLevel;
+        const dy = (imagePanY * (nh / bh)) / zoomLevel;
+
+        // 中心を起点に切り出し位置を計算
+        const sx = (nw / 2) - (sw / 2) - dx;
+        const sy = (nh / 2) - (sh / 2) - dy;
+
         ctx.fillStyle = "#000000";
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        // 4. 描画（比率を維持したまま、ターゲットサイズに引き延ばして描画）
-        ctx.drawImage(
-            img,
-            sourceX, sourceY, sourceWidth, sourceHeight, // 元画像のここを
-            0, 0, TARGET_WIDTH, TARGET_HEIGHT           // プレビュー枠いっぱいに
-        );
+        ctx.drawImage(img, sx, sy, sw, sh, 0, 0, TARGET_WIDTH, TARGET_HEIGHT);
+        croppedPreview.src = canvas.toDataURL('image/png');
+    }
 
         croppedPreview.src = canvas.toDataURL('image/png');
     }
