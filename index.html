@@ -1902,27 +1902,41 @@ let baseBoxHeight = 0;
     
     const canvas = croppedCanvas;
     const ctx = canvas.getContext('2d');
+
+    // 1. キャンバスの解像度を固定（ここがズレるとSafariは伸びます）
     canvas.width = TARGET_WIDTH;
     canvas.height = TARGET_HEIGHT;
 
+    // 2. スケール計算（浮動小数点の誤差を最小限にする）
     const nw = img.naturalWidth;
     const nh = img.naturalHeight;
     const scale = nw / baseImageWidth;
 
-    // Safariの不安定な「表示上のサイズ」を無視し、保存した「純粋な数値」だけで計算します
-    const sw = (baseBoxWidth * scale) / zoomLevel;
-    const sh = (baseBoxHeight * scale) / zoomLevel;
+    // 3. 全ての計算を「描画の直前」にまとめ、端数を処理
+    // Safariは小数点以下のピクセルを扱うと比率を崩すため、整数に丸めます
+    const sw = Math.round((baseBoxWidth * scale) / zoomLevel);
+    const sh = Math.round((baseBoxHeight * scale) / zoomLevel);
+    const dx = Math.round((imagePanX * scale) / zoomLevel);
+    const dy = Math.round((imagePanY * scale) / zoomLevel);
 
-    const dx = (imagePanX * scale) / zoomLevel;
-    const dy = (imagePanY * scale) / zoomLevel;
+    const sx = Math.round((nw / 2) - (sw / 2) - dx);
+    const sy = Math.round((nh / 2) - (sh / 2) - dy);
 
-    const sx = (nw / 2) - (sw / 2) - dx;
-    const sy = (nh / 2) - (sh / 2) - dy;
-
+    // 4. Safariのメモリバグ対策：一旦キャンバスを真っさらな状態にリセット
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.fillStyle = "#000000";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    ctx.drawImage(img, sx, sy, sw, sh, 0, 0, TARGET_WIDTH, TARGET_HEIGHT);
+    // 5. 【最重要】Safariへの描画命令を「比率固定」で実行
+    // 6番目以降の引数（0, 0, canvas.width, canvas.height）で
+    // キャンバスのサイズを明示的に指定し、強制的にTARGETの比率に収めます
+    ctx.drawImage(
+        img, 
+        sx, sy, sw, sh,               // 元画像の切り取り位置とサイズ
+        0, 0, TARGET_WIDTH, TARGET_HEIGHT // 出力先の位置とサイズ（ここを固定）
+    );
+
+    // 6. 出力（Safariで画像が更新されないのを防ぐため、タイムスタンプを付与する手法もありますが、まずはこれで）
     croppedPreview.src = canvas.toDataURL('image/png');
 }
     // --- 修正版セット（ここまで） ---
