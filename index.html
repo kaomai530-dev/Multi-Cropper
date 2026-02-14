@@ -890,6 +890,8 @@
     let imagePanX = 0;
     let imagePanY = 0;
     let zoomLevel = 1;
+    let baseBoxWidth = 0;
+let baseBoxHeight = 0;
     let isPinching = false;
     let initialPinchDistance = 0;
     let initialZoom = 1;
@@ -1870,7 +1872,7 @@
         
         const imgRatio = img.width / img.height;
         
-        // 枠のサイズを計算し、グローバル変数（または関数の外）に数値として保持
+        // 【重要】ここで「計算用の数値」をメモします
         if (imgRatio > TARGET_RATIO) {
             baseBoxHeight = baseImageHeight;
             baseBoxWidth = baseBoxHeight * TARGET_RATIO;
@@ -1892,7 +1894,6 @@
         cropImage(img);
     };
 }
-
     function cropImage(img) {
     if (!img || !baseImageWidth || !baseBoxWidth) return;
     
