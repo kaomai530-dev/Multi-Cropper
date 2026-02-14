@@ -522,23 +522,25 @@
     }
 
  #croppedPreview {
-    /* デザイン */
     border: 2px solid rgba(102, 126, 234, 0.3);
     border-radius: 8px;
     display: block;
     margin: 10px auto;
 
-    /* --- Safariの横伸びを物理的に止める設定 --- */
-    width: 100% !important;           /* 親要素の幅いっぱいに広げる */
-    max-width: 800px !important;      /* Chromeで見ているサイズに合わせる */
-    height: auto !important;          /* 高さを固定せず、比率に任せる */
+    /* --- Safariのバグを封じ込める絶対設定 --- */
+    width: 100% !important;
+    max-width: 800px !important;
     
-    /* Safariに「映画の比率だ」と強制的に教え込む */
-    aspect-ratio: 1920 / 818 !important; 
+    /* 1. aspect-ratio（自動計算）を捨て、高さをpxで無理やり指定します */
+    /* 818 / 1920 = 42.6% なので、横幅に対する比率で高さを固定します */
+    height: auto !important;
+    min-height: 200px; /* 最低限の表示を確保 */
     
-    /* 万が一画像が歪もうとしたら、歪ませずに枠に収める */
+    /* 2. 画像が枠からはみ出したり歪んだりするのを物理的に禁止します */
     object-fit: contain !important;
-    background-color: #000;           /* 隙間は黒で埋める */
+    
+    /* 3. 以前の比率の残像を消すため、背景を黒にします */
+    background-color: #000;
 }
     .download-modal {
         display: none;
