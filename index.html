@@ -521,12 +521,15 @@
         text-align: center;
     }
 
-    #croppedPreview {
-        border: 2px solid rgba(102, 126, 234, 0.3);
-        max-width: 100%;
-        height: auto;
-        border-radius: 8px;
-    }
+   #croppedPreview {
+    border: 2px solid rgba(102, 126, 234, 0.3);
+    max-width: 100%;
+    height: auto !important; /* !importantを追加して強制力を高めます */
+    object-fit: contain;      /* これがSafariの横伸びを防ぐ決定打です */
+    border-radius: 8px;
+    display: block;           /* 配置を安定させます */
+    margin: 0 auto;           /* 中央に配置します */
+}
 
     .download-modal {
         display: none;
