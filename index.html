@@ -1359,8 +1359,8 @@ let baseBoxHeight = 0;
         // cropImage will be called on touch/interaction end for better performance
     }
 
-   function updateImageTransform() {
-    // scaleの前にtranslateを書くのがポイントです
+  function updateImageTransform() {
+    // scaleを先に評価させないよう、この順序を厳守します
     selectorImage.style.transform = `translate(${imagePanX}px, ${imagePanY}px) scale(${zoomLevel})`;
 }
     function startDrag(e) {
@@ -1903,40 +1903,41 @@ let baseBoxHeight = 0;
     const canvas = croppedCanvas;
     const ctx = canvas.getContext('2d');
 
-    // 1. キャンバスの解像度を固定（ここがズレるとSafariは伸びます）
+    // 1. キャンバスサイズを物理的に固定
     canvas.width = TARGET_WIDTH;
     canvas.height = TARGET_HEIGHT;
 
-    // 2. スケール計算（浮動小数点の誤差を最小限にする）
+    // 2. 「画面上の100%表示」と「画像の真の実寸」の比率
+    // これがデバイスの「2倍表示(Retina)」などに惑わされない唯一の数値です
     const nw = img.naturalWidth;
     const nh = img.naturalHeight;
     const scale = nw / baseImageWidth;
 
-    // 3. 全ての計算を「描画の直前」にまとめ、端数を処理
-    // Safariは小数点以下のピクセルを扱うと比率を崩すため、整数に丸めます
-    const sw = Math.round((baseBoxWidth * scale) / zoomLevel);
-    const sh = Math.round((baseBoxHeight * scale) / zoomLevel);
-    const dx = Math.round((imagePanX * scale) / zoomLevel);
-    const dy = Math.round((imagePanY * scale) / zoomLevel);
+    // 3. クロップ範囲の計算
+    // offsetWidthなどを使わず、保存しておいた baseBoxWidth（数値）を直接使います
+    const sw = (baseBoxWidth * scale) / zoomLevel;
+    const sh = (baseBoxHeight * scale) / zoomLevel;
 
-    const sx = Math.round((nw / 2) - (sw / 2) - dx);
-    const sy = Math.round((nh / 2) - (sh / 2) - dy);
+    // 4. 移動量の計算
+    const dx = (imagePanX * scale) / zoomLevel;
+    const dy = (imagePanY * scale) / zoomLevel;
 
-    // 4. Safariのメモリバグ対策：一旦キャンバスを真っさらな状態にリセット
+    // 5. 切り出し開始位置（中心基準）
+    const sx = (nw / 2) - (sw / 2) - dx;
+    const sy = (nh / 2) - (sh / 2) - dy;
+
+    // 6. 描画（Safari/スマホのバグ避け）
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.fillStyle = "#000000";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // 5. 【最重要】Safariへの描画命令を「比率固定」で実行
-    // 6番目以降の引数（0, 0, canvas.width, canvas.height）で
-    // キャンバスのサイズを明示的に指定し、強制的にTARGETの比率に収めます
+    // 整数に丸めてから描画（Safariの1px未満のバグ対策）
     ctx.drawImage(
         img, 
-        sx, sy, sw, sh,               // 元画像の切り取り位置とサイズ
-        0, 0, TARGET_WIDTH, TARGET_HEIGHT // 出力先の位置とサイズ（ここを固定）
+        Math.round(sx), Math.round(sy), Math.round(sw), Math.round(sh),
+        0, 0, TARGET_WIDTH, TARGET_HEIGHT
     );
 
-    // 6. 出力（Safariで画像が更新されないのを防ぐため、タイムスタンプを付与する手法もありますが、まずはこれで）
     croppedPreview.src = canvas.toDataURL('image/png');
 }
     // --- 修正版セット（ここまで） ---
