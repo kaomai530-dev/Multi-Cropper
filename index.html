@@ -1904,29 +1904,39 @@
         canvas.width = TARGET_WIDTH;
         canvas.height = TARGET_HEIGHT;
 
-        // 画面上のリアルな位置を取得
-        const imgRect = selectorImage.getBoundingClientRect();
-        const boxRect = cropBox.getBoundingClientRect();
+        // 1. 実寸（natural）と最初に表示した時のサイズの比率を計算
+        // これにより「画面上の1px」が「実際の画像で何pxか」を求めます
+        const nw = img.naturalWidth;
+        const nh = img.naturalHeight;
+        const scale = nw / baseImageWidth;
 
-        // 表示サイズと実寸の比率
-        const scaleX = img.naturalWidth / imgRect.width;
-        const scaleY = img.naturalHeight / imgRect.height;
+        // 2. Safariでも狂わない「切り取り範囲」の計算
+        // zoomLevelを直接計算に使うことで、Safariの座標取得の癖を回避します
+        // 枠のサイズ × スケール比を、現在のズーム倍率で割ります
+        const sw = (cropBox.offsetWidth * scale) / zoomLevel;
+        const sh = (cropBox.offsetHeight * scale) / zoomLevel;
 
-        // クロップ範囲の計算
-        const sx = (boxRect.left - imgRect.left) * scaleX;
-        const sy = (boxRect.top - imgRect.top) * scaleY;
-        const sw = boxRect.width * scaleX;
-        const sh = boxRect.height * scaleY;
+        // 3. 移動量の計算
+        // 表示上の移動量(imagePanX/Y)を、実寸ピクセルに変換
+        // Safariではここがズーム倍率の影響を受けやすいため、明示的にzoomLevelで割ります
+        const dx = (imagePanX * scale) / zoomLevel;
+        const dy = (imagePanY * scale) / zoomLevel;
 
-        // キャンバスをクリア
+        // 4. 切り出し開始位置（左上基準）
+        // 画像の中心から、範囲の半分と移動量を引く
+        const sx = (nw / 2) - (sw / 2) - dx;
+        const sy = (nh / 2) - (sh / 2) - dy;
+
+        // 背景を黒でクリア
         ctx.fillStyle = "#000000";
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        // 描画
+        // 5. 描画
+        // sx, sy, sw, sh がすべて同じ scale と zoomLevel を元に計算されるため、
+        // 縦横比が崩れる（横伸びする）ことは物理的にあり得なくなります
         ctx.drawImage(img, sx, sy, sw, sh, 0, 0, TARGET_WIDTH, TARGET_HEIGHT);
         croppedPreview.src = canvas.toDataURL('image/png');
     }
-
     // --- 修正版セット（ここまで） ---
     resetBtn.addEventListener('click', () => {
         previewSection.style.display = 'none';
