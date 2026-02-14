@@ -1355,9 +1355,8 @@
     }
 
     function updateImageTransform() {
-        // Use scale first, then translate
-        // This way translate is not affected by scale
-        selectorImage.style.transform = `scale(${zoomLevel}) translate(${imagePanX / zoomLevel}px, ${imagePanY / zoomLevel}px)`;
+        // 移動(translate)を先に、拡大(scale)を後に書くことで、計算をシンプルにします
+        selectorImage.style.transform = `translate(${imagePanX}px, ${imagePanY}px) scale(${zoomLevel})`;
     }
 
     function startDrag(e) {
