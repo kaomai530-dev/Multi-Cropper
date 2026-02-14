@@ -1863,16 +1863,14 @@
         selectorImage.onload = () => {
             const containerRect = cropSelector.getBoundingClientRect();
             
-            // 1. ズームなどがかかる前の「初期表示サイズ」を正確に取得
-            const imageRect = selectorImage.getBoundingClientRect();
-            
-            // 2. グローバル変数にベースサイズを保存（displayedWidthを使わず直接代入）
-            baseImageWidth = imageRect.width;
-            baseImageHeight = imageRect.height;
+            // ズームなどがかかる「前」の表示サイズを確実に取得してグローバル変数に保存
+            // ここで let や const を付けないことで、外側の baseImageWidth に代入します
+            const initialRect = selectorImage.getBoundingClientRect();
+            baseImageWidth = initialRect.width;
+            baseImageHeight = initialRect.height;
             
             const imgRatio = img.width / img.height;
             
-            // 3. クロップ枠の初期サイズ計算
             let boxWidth, boxHeight;
             if (imgRatio > TARGET_RATIO) {
                 boxHeight = baseImageHeight;
@@ -1884,66 +1882,54 @@
             
             cropBox.style.width = boxWidth + 'px';
             cropBox.style.height = boxHeight + 'px';
-            
-            // 4. 枠を中央に配置
             cropBox.style.left = (containerRect.width - boxWidth) / 2 + 'px';
             cropBox.style.top = (containerRect.height - boxHeight) / 2 + 'px';
             
-            // 5. 状態のリセット
+            // 状態リセット
             zoomLevel = 1;
             imagePanX = 0;
             imagePanY = 0;
             updateImageTransform();
             updateCustomCropPosition();
             
-            // 6. 初回のクロップ実行
             cropImage(img);
         };
     }
     // Crop image
         function cropImage(img) {
-    if (!img || !baseImageWidth) return;
-    
-    const canvas = croppedCanvas;
-    const ctx = canvas.getContext('2d');
-    canvas.width = TARGET_WIDTH;
-    canvas.height = TARGET_HEIGHT;
+        if (!img || !baseImageWidth || baseImageWidth === 0) return;
+        
+        const canvas = croppedCanvas;
+        const ctx = canvas.getContext('2d');
+        canvas.width = TARGET_WIDTH;
+        canvas.height = TARGET_HEIGHT;
 
-    const nw = img.naturalWidth;
-    const nh = img.naturalHeight;
-    
-    // 1. 表示上の「ズームなし状態」の画像サイズに対する「実寸」の比率
-    const scale = nw / baseImageWidth;
+        // 実画像と、100%表示時の画面サイズの比率
+        const nw = img.naturalWidth;
+        const nh = img.naturalHeight;
+        const scale = nw / baseImageWidth;
 
-    // 2. 切り取る範囲（Source Width/Height）の計算
-    // クロップ枠のサイズを、現在のズーム倍率で割ることで、
-    // ズームアウト時に「より広い範囲」を切り取るように調整します
-    const sw = (cropBox.offsetWidth / zoomLevel) * scale;
-    const sh = (cropBox.offsetHeight / zoomLevel) * scale;
+        // 【最重要】swとshの計算に「全く同じ比率」を適用して、横伸びを完全に封じます
+        // 枠のピクセル数にスケールを掛け、現在のズームで割ることで「実画像上の切り取り範囲」を出します
+        const sw = (cropBox.offsetWidth * scale) / zoomLevel;
+        const sh = (cropBox.offsetHeight * scale) / zoomLevel;
 
-    // 3. 移動量（Pan）の計算
-    // 表示上の移動量を、ズーム倍率を考慮して実寸ピクセルに変換
-    const dx = (imagePanX / zoomLevel) * scale;
-    const dy = (imagePanY / zoomLevel) * scale;
+        // 移動量の計算
+        const dx = (imagePanX * scale) / zoomLevel;
+        const dy = (imagePanY * scale) / zoomLevel;
 
-    // 4. 切り出し開始位置（左上）
-    // 画像の中心を起点にして、そこから切り出し範囲の半分と、移動量を差し引く
-    const sx = (nw / 2) - (sw / 2) - dx;
-    const sy = (nh / 2) - (sh / 2) - dy;
+        // 切り出し開始位置（中心基準）
+        const sx = (nw / 2) - (sw / 2) - dx;
+        const sy = (nh / 2) - (sh / 2) - dy;
 
-    // キャンバスをクリア
-    ctx.fillStyle = "#000000";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+        // 背景を真っ黒で塗りつぶし
+        ctx.fillStyle = "#000000";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // 5. 描画（ここが重要：sw, shが正しく連動すれば横伸びしません）
-    ctx.drawImage(
-        img,
-        sx, sy, sw, sh,
-        0, 0, TARGET_WIDTH, TARGET_HEIGHT
-    );
-
-    croppedPreview.src = canvas.toDataURL('image/png');
-}
+        // 描画実行
+        ctx.drawImage(img, sx, sy, sw, sh, 0, 0, TARGET_WIDTH, TARGET_HEIGHT);
+        croppedPreview.src = canvas.toDataURL('image/png');
+    }
     // Download - Show modal with image
     downloadBtn.addEventListener('click', () => {
         downloadImage.innerHTML = `<img src="${croppedPreview.src}" style="max-width: 100%; border-radius: 10px; border: 2px solid rgba(102, 126, 234, 0.3);" alt="Cropped Image">`;
