@@ -1971,6 +1971,10 @@ let baseBoxHeight = 0;
 
     // 描画
     ctx.drawImage(img, sx, sy, sw, sh, 0, 0, outW, outH);
+       
+       // --- ここを追加 ---
+    preview.style.height = 'auto'; 
+    // -----------------
 
     // 出力（Safariに「新しい画像」であることを強調するためにURLにタイムスタンプを付加）
     preview.src = canvas.toDataURL('image/png') + '#' + new Date().getTime();
