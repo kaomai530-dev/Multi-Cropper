@@ -522,17 +522,20 @@
     }
 
    #croppedPreview {
+    /* デザイン */
     border: 2px solid rgba(102, 126, 234, 0.3);
     border-radius: 8px;
     display: block;
     margin: 10px auto;
 
-    /* --- Safari対策の核心 --- */
-    width: 100% !important;        /* 親要素の幅に合わせる */
-    max-width: 800px;              /* PCで見るときに小さくなりすぎないサイズ */
-    height: auto !important;       /* 高さは比率に任せる */
-    aspect-ratio: 1920 / 818;      /* 枠の形を1920:818に固定（Safariに形を教え込む） */
-    object-fit: contain !important; /* 画像が歪むくらいなら、余白を残すように命令 */
+    /* --- サイズと比率の強制固定 --- */
+    width: 100% !important;        /* 横幅を親要素いっぱいにする（これで「小さくなる」を解決） */
+    max-width: 100% !important;     /* 画面からはみ出さない */
+    height: auto !important;        /* 高さを自動計算に任せる */
+    
+    /* Safariの横伸びを殺す「絶対命令」 */
+    aspect-ratio: 1920 / 818 !important; /* 枠の形を強制固定 */
+    object-fit: contain !important;      /* 枠の中で画像を絶対に歪ませない */
 }
     .download-modal {
         display: none;
