@@ -1914,40 +1914,36 @@
         const naturalWidth = img.naturalWidth;
         const naturalHeight = img.naturalHeight;
         
-        // 1. 画面上の表示サイズと実サイズの比率
+        // 1. 画面上の1pxが、実画像の何pxに相当するか（スケール比）
         const scale = naturalWidth / baseImageWidth;
         
-        // 2. クロップ枠のサイズを実サイズに変換
-        // ズームLevelで割ることで、ズームアウト時に広い範囲を取得するようにする
-        const viewWidth = cropBox.offsetWidth / zoomLevel;
-        const viewHeight = cropBox.offsetHeight / zoomLevel;
+        // 2. クロップ枠のサイズを実画像サイズに換算し、さらにズームを適用
+        // ズームアウト（zoomLevel < 1）すると、sourceWidthは大きくなり、広い範囲を映します
+        const sourceWidth = (cropBox.offsetWidth * scale) / zoomLevel;
+        const sourceHeight = (cropBox.offsetHeight * scale) / zoomLevel;
         
-        const sourceWidth = viewWidth * scale;
-        const sourceHeight = viewHeight * scale;
+        // 3. 画像の中心を基準とした切り取り開始位置（左上座標）の計算
+        // パン（移動量）もスケールとズームを考慮して実画像pxに変換
+        const actualPanX = (imagePanX * scale) / zoomLevel;
+        const actualPanY = (imagePanY * scale) / zoomLevel;
         
-        // 3. パン（移動）を考慮した中心位置の計算
-        // 画像の中心から、移動量（Pan）を実サイズに変換して引く
-        const actualPanX = (imagePanX / zoomLevel) * scale;
-        const actualPanY = (imagePanY / zoomLevel) * scale;
-        
+        // 切り取り開始位置 ＝ 画像の中心 － (切り取る幅の半分) － 移動量
         const sourceX = (naturalWidth / 2) - (sourceWidth / 2) - actualPanX;
         const sourceY = (naturalHeight / 2) - (sourceHeight / 2) - actualPanY;
 
-        // キャンバスをクリアして黒で塗る（画像がない場所を黒にする）
+        // キャンバスをクリア（背景を黒に）
         ctx.fillStyle = "#000000";
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        // 4. 描画（ここがポイント：比率を維持して描画）
-        // ズームアウトして画像が枠より小さくなっても、引き伸ばさないように計算
+        // 4. 描画（比率を維持したまま、ターゲットサイズに引き延ばして描画）
         ctx.drawImage(
             img,
-            sourceX, sourceY, sourceWidth, sourceHeight,
-            0, 0, TARGET_WIDTH, TARGET_HEIGHT
+            sourceX, sourceY, sourceWidth, sourceHeight, // 元画像のここを
+            0, 0, TARGET_WIDTH, TARGET_HEIGHT           // プレビュー枠いっぱいに
         );
 
         croppedPreview.src = canvas.toDataURL('image/png');
     }
-
     // Download - Show modal with image
     downloadBtn.addEventListener('click', () => {
         downloadImage.innerHTML = `<img src="${croppedPreview.src}" style="max-width: 100%; border-radius: 10px; border: 2px solid rgba(102, 126, 234, 0.3);" alt="Cropped Image">`;
