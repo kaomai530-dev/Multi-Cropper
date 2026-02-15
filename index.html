@@ -250,11 +250,17 @@
     }
 
     .preview-container {
-        background: rgba(0, 0, 0, 0.3);
-        border-radius: 10px;
-        padding: 20px;
-        margin-bottom: 20px;
-        text-align: center;
+    width: 100%;
+    max-width: 800px;
+    margin: 20px auto;
+    background: #000;
+    position: relative;
+    /* 1920:818 (約42.6%) を物理的に確保 */
+    padding-top: 42.60416%; 
+    border-radius: 8px;
+    border: 2px solid rgba(102, 126, 234, 0.3);
+    overflow: hidden;
+}
     }
 
     .preview-label {
@@ -522,22 +528,12 @@
     }
 
 #croppedPreview {
-    display: block;
-    margin: 10px auto;
+    position: absolute;
+    top: 0;
+    left: 0;
     width: 100% !important;
-    max-width: 800px !important;
-    
-    /* 1. Safariに2.35:1(1920:818)の比率を物理的に強制する */
-    aspect-ratio: 1920 / 818 !important;
-    
-    /* 2. Safariが勝手に高さを伸ばすのを禁止 */
-    height: auto !important;
-    
-    /* 3. 画像が歪むのを防ぎ、枠の中に正しく収める */
-    object-fit: contain !important; 
-    background-color: #000;
-    border: 2px solid rgba(102, 126, 234, 0.3);
-    border-radius: 8px;
+    height: 100% !important;
+    object-fit: contain !important; /* 絶対に歪ませない */
 }
     .download-modal {
         display: none;
@@ -1940,16 +1936,13 @@ let baseBoxHeight = 0;
     if (!canvas || !preview) return;
     const ctx = canvas.getContext('2d');
 
-    // 出力サイズを1920x818に厳格固定
-    const outW = 1920;
-    const outH = 818;
-    canvas.width = outW;
-    canvas.height = outH;
+    // 出力サイズ 1920x818 を厳格固定
+    canvas.width = 1920;
+    canvas.height = 818;
 
     const nw = img.naturalWidth;
     const nh = img.naturalHeight;
     const scale = nw / baseImageWidth;
-    
     const sw = (baseBoxWidth * scale) / zoomLevel;
     const sh = (baseBoxHeight * scale) / zoomLevel;
     const dx = (imagePanX * scale) / zoomLevel;
@@ -1957,21 +1950,25 @@ let baseBoxHeight = 0;
     const sx = (nw / 2) - (sw / 2) - dx;
     const sy = (nh / 2) - (sh / 2) - dy;
 
-    // 黒塗りで初期化してから描画
     ctx.fillStyle = "#000";
-    ctx.fillRect(0, 0, outW, outH);
-    ctx.drawImage(img, sx, sy, sw, sh, 0, 0, outW, outH);
+    ctx.fillRect(0, 0, 1920, 818);
+    ctx.drawImage(img, sx, sy, sw, sh, 0, 0, 1920, 818);
 
-    // Safariのキャッシュと表示バグを破壊するための処理
-    // 1. 一旦ソースを空にする
+    // Safariの表示バグを抹殺するための「完全再描画」
+    const newImageData = canvas.toDataURL('image/png');
+    
+    // 既存のimgタグのスタイルとソースを完全にリセット
+    preview.style.display = 'none';
     preview.src = "";
-    // 2. インラインスタイルをリセット（CSSのaspect-ratioを優先させるため）
-    preview.removeAttribute('style');
-    // 3. データURLを注入
-    preview.src = canvas.toDataURL('image/png');
+    
+    // 一瞬待ってから再セットすることでSafariに「新しい画像」と認識させる
+    setTimeout(() => {
+        preview.src = newImageData;
+        preview.style.display = 'block';
+    }, 10);
 
     const label = document.getElementById('croppedLabel');
-    if (label) label.textContent = `クロップ後（1,920 × 818）`;
+    if (label) label.textContent = `クロップ後（1920 × 818）`;
 }
     // --- 修正版セット（ここまで） ---
     resetBtn.addEventListener('click', () => {
