@@ -1227,12 +1227,12 @@ let baseBoxHeight = 0;
         TARGET_HEIGHT = height;
         TARGET_RATIO = width / height;
         // currentRatioを入力された数値通りに反映
-        currentRatio = `${width}:${height}`;
+        currentRatio = `${width}:${height}`; 
         
         // Update labels
         // 1920x818固定ではなく、指定した比率のラベルを表示
-        croppedLabel.textContent = `クロップ後（${width}×${height}）`;
-        ratioInfo.textContent = `アスペクト比: ${currentRatio} (Custom)`;
+        croppedLabel.textContent = `クロップ後 (${width} × ${height})`;
+ratioInfo.textContent = `アスペクト比: ${width}:${height} (Custom)`;
         
         // Reset and recalculate
         if (currentImage) {
