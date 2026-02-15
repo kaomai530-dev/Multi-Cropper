@@ -1426,8 +1426,16 @@ let baseBoxHeight = 0;
     }
 
   function updateImageTransform() {
-    // scaleを先に評価させないよう、この順序を厳守します
-    selectorImage.style.transform = `translate(${imagePanX}px, ${imagePanY}px) scale(${zoomLevel})`;
+    if (!selectorImage || !originalImage) return;
+    
+    // 【修正の肝】計算の分母を「現在表示中の画像」ではなく
+    // 常に「アップロードされた直後の元画像」の幅に固定します。
+    // これにより、黒帯カットで画像が小さくなっても表示倍率が狂わなくなります。
+    const displayScale = containerWidth / originalImage.width;
+    const finalScale = displayScale * zoomLevel;
+
+    // 中央配置を維持しながら拡大・移動を適用
+    selectorImage.style.transform = `translate(calc(-50% + ${imagePanX}px), calc(-50% + ${imagePanY}px)) scale(${finalScale})`;
 }
     function startDrag(e) {
         if (isPinching) return;
