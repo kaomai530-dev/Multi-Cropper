@@ -1427,24 +1427,22 @@ let baseBoxHeight = 0;
 
   // 修正後
 function updateImageTransform() {
-    // currentImage を originalImage に変えるだけ
-    if (!selectorImage || !originalImage) return; 
+    // 必要な要素が揃っているか確認
+    if (!selectorImage || !originalImage) return;
 
-    // もし元々のコードで containerWidth のような変数が使われていたなら
-    // その変数名は一切いじらず、計算式の「分母」だけを originalImage.width にします。
-        
-        isDragging = true;
-        selectorImage.style.cursor = 'grabbing';
-        
-        const touch = e.touches ? e.touches[0] : e;
-        dragStartX = touch.clientX;
-        dragStartY = touch.clientY;
-        imageStartX = imagePanX;
-        imageStartY = imagePanY;
-        
-        e.preventDefault();
-    }
+    // 変数名エラーを防ぐため、その場でコンテナ要素を直接取得します
+    const container = document.getElementById('selector-container');
+    if (!container) return;
 
+    // 【縮小防止の鍵】
+    // 計算の基準（分母）を、加工後の画像ではなく、常に「最初の元画像」の幅に固定します。
+    // これにより、黒帯カットで画像サイズが変わっても、表示倍率が狂わなくなります。
+    const scale = container.clientWidth / originalImage.width;
+    const finalScale = scale * zoomLevel;
+
+    // 中央配置を維持しながら、計算した倍率を適用
+    selectorImage.style.transform = `translate(calc(-50% + ${imagePanX}px), calc(-50% + ${imagePanY}px)) scale(${finalScale})`;
+}
     function drag(e) {
         if (!isDragging || isPinching) return;
         
