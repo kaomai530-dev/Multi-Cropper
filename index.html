@@ -1205,30 +1205,37 @@ let baseBoxHeight = 0;
         
         if (originalImage) {
             if (autoRemoveBlackBars) {
-                // 常に「最初の元画像」から黒帯を検出する
-                detectAndRemoveBlackBars(originalImage, originalImage.originalFilename);
+                // --- 縮小ループ防止の確実な処理 ---
+                // currentImageを一旦リセットして、必ずオリジナルのコピーを作成させる
+                const tempImg = new Image();
+                tempImg.src = originalImage.src;
                 
-                setTimeout(() => {
-                    // 【重要】縮小ループを防ぐため、基準サイズを現在の画像(カット後)の数値で正しく上書きする
-                    if (currentImage) {
-                        baseImageWidth = currentImage.width;
-                        baseImageHeight = currentImage.height;
-                    }
+                tempImg.onload = () => {
+                    // 常に「本当の元画像」から黒帯を検出し、currentImage（表示用）のみを更新する
+                    detectAndRemoveBlackBars(originalImage, originalImage.originalFilename);
                     
-                    // 表示位置とズームを初期化（これを行わないと前の小さい枠が基準になる）
-                    zoomLevel = 1.0;
-                    imagePanX = 0;
-                    imagePanY = 0;
-                    
-                    updateImageTransform();
-                    setupCropSelector(currentImage);
-                    cropImage(currentImage);
-                }, 100); 
+                    setTimeout(() => {
+                        // 基準サイズをカット後のサイズで正しく「再定義」する
+                        if (currentImage) {
+                            baseImageWidth = currentImage.width;
+                            baseImageHeight = currentImage.height;
+                        }
+                        
+                        // 表示位置とズームを初期化（前の小さい状態を引きずらせない）
+                        zoomLevel = 1.0;
+                        imagePanX = 0;
+                        imagePanY = 0;
+                        
+                        updateImageTransform();
+                        setupCropSelector(currentImage);
+                        cropImage(currentImage);
+                    }, 100);
+                };
             } else {
-                // チェックを外した時は、完全に最初の元画像に戻す
+                // チェックを外した時は、不変の originalImage を currentImage に戻す
                 currentImage = originalImage;
                 
-                // 基準サイズも元画像のサイズに戻す
+                // 基準サイズを元々のサイズに完全復元
                 baseImageWidth = originalImage.width;
                 baseImageHeight = originalImage.height;
                 
