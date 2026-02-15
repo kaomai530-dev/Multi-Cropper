@@ -1205,18 +1205,19 @@ let baseBoxHeight = 0;
         
         if (!originalImage) return;
 
-        // チェック状態に関わらず、一度ズームと位置をリセット（計算の狂いを防ぐ）
+        // 【最重要】位置とズームを一旦完全にゼロに戻す
         zoomLevel = 1.0;
         imagePanX = 0;
         imagePanY = 0;
 
         if (autoRemoveBlackBars) {
             // --- 黒帯カット時 ---
-            // originalImageを汚さず、新しい画像として検出・代入
+            // originalImage（絶対に変わらない元画像）を渡して、表示用(currentImage)を作る
             detectAndRemoveBlackBars(originalImage, originalImage.originalFilename);
             
+            // detectAndRemoveBlackBars内で currentImage = 新しいキャンバス となった直後に
+            // 「今の基準サイズ」をその画像のサイズで上書き固定する
             setTimeout(() => {
-                // カット後の画像サイズを「今の基準」として再セット
                 if (currentImage) {
                     baseImageWidth = currentImage.width;
                     baseImageHeight = currentImage.height;
@@ -1224,10 +1225,10 @@ let baseBoxHeight = 0;
                 updateImageTransform();
                 setupCropSelector(currentImage);
                 cropImage(currentImage);
-            }, 150); // 余裕を持って少し長めに待機
+            }, 100); 
         } else {
-            // --- 黒帯カット解除時 ---
-            // 完全に初期状態の originalImage とそのサイズに戻す
+            // --- チェック解除時 ---
+            // 完全に、絶対に、最初の originalImage とそのサイズに戻す
             currentImage = originalImage;
             baseImageWidth = originalImage.width;
             baseImageHeight = originalImage.height;
