@@ -1203,52 +1203,41 @@ let baseBoxHeight = 0;
     autoRemoveCheckbox.addEventListener('change', (e) => {
         autoRemoveBlackBars = e.target.checked;
         
-        if (originalImage) {
-            if (autoRemoveBlackBars) {
-                // --- 縮小ループ防止の確実な処理 ---
-                // currentImageを一旦リセットして、必ずオリジナルのコピーを作成させる
-                const tempImg = new Image();
-                tempImg.src = originalImage.src;
-                
-                tempImg.onload = () => {
-                    // 常に「本当の元画像」から黒帯を検出し、currentImage（表示用）のみを更新する
-                    detectAndRemoveBlackBars(originalImage, originalImage.originalFilename);
-                    
-                    setTimeout(() => {
-                        // 基準サイズをカット後のサイズで正しく「再定義」する
-                        if (currentImage) {
-                            baseImageWidth = currentImage.width;
-                            baseImageHeight = currentImage.height;
-                        }
-                        
-                        // 表示位置とズームを初期化（前の小さい状態を引きずらせない）
-                        zoomLevel = 1.0;
-                        imagePanX = 0;
-                        imagePanY = 0;
-                        
-                        updateImageTransform();
-                        setupCropSelector(currentImage);
-                        cropImage(currentImage);
-                    }, 100);
-                };
-            } else {
-                // チェックを外した時は、不変の originalImage を currentImage に戻す
-                currentImage = originalImage;
-                
-                // 基準サイズを元々のサイズに完全復元
-                baseImageWidth = originalImage.width;
-                baseImageHeight = originalImage.height;
-                
-                zoomLevel = 1.0;
-                imagePanX = 0;
-                imagePanY = 0;
-                detectedCropBounds = null;
-                processedImage = null;
-                
+        if (!originalImage) return;
+
+        // チェック状態に関わらず、一度ズームと位置をリセット（計算の狂いを防ぐ）
+        zoomLevel = 1.0;
+        imagePanX = 0;
+        imagePanY = 0;
+
+        if (autoRemoveBlackBars) {
+            // --- 黒帯カット時 ---
+            // originalImageを汚さず、新しい画像として検出・代入
+            detectAndRemoveBlackBars(originalImage, originalImage.originalFilename);
+            
+            setTimeout(() => {
+                // カット後の画像サイズを「今の基準」として再セット
+                if (currentImage) {
+                    baseImageWidth = currentImage.width;
+                    baseImageHeight = currentImage.height;
+                }
                 updateImageTransform();
                 setupCropSelector(currentImage);
                 cropImage(currentImage);
-            }
+            }, 150); // 余裕を持って少し長めに待機
+        } else {
+            // --- 黒帯カット解除時 ---
+            // 完全に初期状態の originalImage とそのサイズに戻す
+            currentImage = originalImage;
+            baseImageWidth = originalImage.width;
+            baseImageHeight = originalImage.height;
+            
+            detectedCropBounds = null;
+            processedImage = null;
+            
+            updateImageTransform();
+            setupCropSelector(currentImage);
+            cropImage(currentImage);
         }
     });
    // Custom aspect ratio
