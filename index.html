@@ -527,17 +527,19 @@
     display: block;
     margin: 10px auto;
 
-    /* Safariのキャッシュバグを物理的に回避する */
+    /* Safariの自動計算を完全に殺し、シネスコ比率を強制します */
     width: 100% !important;
     max-width: 800px !important;
     
-    /* aspect-ratioを使わず、高さが「幅の約42.6%」であることを固定します */
+    /* 1. 高さを「自動」にせず、比率で固定する命令を明確に書きます */
+    aspect-ratio: 1920 / 818 !important;
     height: auto !important;
-    min-height: 100px;
     
-    /* これが重要：画像が歪んで表示されるのを絶対禁止にします */
+    /* 2. 画像が枠をはみ出したり歪んだりするのを物理的に禁止します */
     object-fit: contain !important; 
     background-color: #000;
+
+    /* 3. 無用な最小高さを削除します（これが歪みの原因でした） */
 }
     .download-modal {
         display: none;
