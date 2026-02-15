@@ -521,25 +521,22 @@
         text-align: center;
     }
 
- #croppedPreview {
+#croppedPreview {
     border: 2px solid rgba(102, 126, 234, 0.3);
     border-radius: 8px;
     display: block;
     margin: 10px auto;
 
-    /* --- Safariのバグを封じ込める絶対設定 --- */
+    /* Safariのキャッシュバグを物理的に回避する */
     width: 100% !important;
     max-width: 800px !important;
     
-    /* 1. aspect-ratio（自動計算）を捨て、高さをpxで無理やり指定します */
-    /* 818 / 1920 = 42.6% なので、横幅に対する比率で高さを固定します */
+    /* aspect-ratioを使わず、高さが「幅の約42.6%」であることを固定します */
     height: auto !important;
-    min-height: 200px; /* 最低限の表示を確保 */
+    min-height: 100px;
     
-    /* 2. 画像が枠からはみ出したり歪んだりするのを物理的に禁止します */
-    object-fit: contain !important;
-    
-    /* 3. 以前の比率の残像を消すため、背景を黒にします */
+    /* これが重要：画像が歪んで表示されるのを絶対禁止にします */
+    object-fit: contain !important; 
     background-color: #000;
 }
     .download-modal {
