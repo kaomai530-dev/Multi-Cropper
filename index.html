@@ -1969,20 +1969,22 @@ let baseBoxHeight = 0;
     const previewWidth = Math.min(window.innerWidth * 0.9, 800);
     const previewHeight = previewWidth * (818 / 1920);
 
-    preview.style.setProperty('width', previewWidth + 'px', 'important');
-    preview.style.setProperty('height', previewHeight + 'px', 'important');
-    preview.style.setProperty('aspect-ratio', '1920 / 818', 'important');
-    preview.style.setProperty('object-fit', 'fill', 'important');
+    // プレビューの表示サイズを設定
+    preview.style.setProperty('width', '100%', 'important'); // 枠の幅に合わせる
+    preview.style.setProperty('height', 'auto', 'important');
+    preview.style.setProperty('max-width', previewWidth + 'px', 'important');
+    
+    // iPhoneでの右側切れ・ズレ対策（座標を左上に完全固定）
     preview.style.setProperty('position', 'relative', 'important');
     preview.style.setProperty('left', '0', 'important');
     preview.style.setProperty('top', '0', 'important');
-    preview.parentNode.style.overflow = 'hidden';
-    preview.style.setProperty('margin', '0', 'important');
-    preview.style.setProperty('padding', '0', 'important');
-    preview.style.setProperty('display', 'block', 'important');  
-    // containではなくfillで枠に強制密着させる
+    preview.style.setProperty('margin', '0 auto', 'important'); // 中央寄せ
+    preview.style.setProperty('display', 'block', 'important');
     
-    // 画像反映
+    // 親要素からはみ出さないように設定
+    preview.parentNode.style.overflow = 'hidden';
+    preview.parentNode.style.display = 'flex';
+    preview.parentNode.style.justifyContent = 'center';
     preview.src = canvas.toDataURL('image/png');
 
     const label = document.getElementById('croppedLabel');
