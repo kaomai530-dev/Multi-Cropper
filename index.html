@@ -1940,33 +1940,44 @@ let baseBoxHeight = 0;
     if (!canvas || !preview) return;
     const ctx = canvas.getContext('2d');
 
-    // 1. 出力サイズを固定（シネスコ比率）
     const outW = 1920;
     const outH = 818; 
     canvas.width = outW;
     canvas.height = outH;
 
-    // 2. クロップ計算
-    const scale = img.naturalWidth / baseImageWidth;
+    const nw = img.naturalWidth;
+    const nh = img.naturalHeight;
+    const scale = nw / baseImageWidth;
     const sw = Math.round((baseBoxWidth * scale) / zoomLevel);
     const sh = Math.round((baseBoxHeight * scale) / zoomLevel);
     const dx = Math.round((imagePanX * scale) / zoomLevel);
     const dy = Math.round((imagePanY * scale) / zoomLevel);
-    const sx = Math.round((img.naturalWidth / 2) - (sw / 2) - dx);
-    const sy = Math.round((img.naturalHeight / 2) - (sh / 2) - dy);
+    const sx = Math.round((nw / 2) - (sw / 2) - dx);
+    const sy = Math.round((nh / 2) - (sh / 2) - dy);
 
-    // 3. 描画
-    ctx.fillStyle = "#000";
+    ctx.fillStyle = "#000000";
     ctx.fillRect(0, 0, outW, outH);
     ctx.drawImage(img, sx, sy, sw, sh, 0, 0, outW, outH);
 
-    // 4. 【Safariバグ回避の核心】
-    // CSSの「aspect-ratio」などを一切無視させるため、style属性をプログラムで上書き固定します
-    preview.style.cssText = "width:100% !important; max-width:800px !important; height:auto !important; aspect-ratio:auto !important; object-fit:contain !important;";
+    // --- ここが Safari を強制終了させる核心の処理です ---
     
-    // 画像を反映
-    preview.src = canvas.toDataURL('image/png');
+    // 1. Safariが覚えている古いサイズを「完全に消去」します
+    preview.removeAttribute('width');
+    preview.removeAttribute('height');
+    preview.style.width = "";
+    preview.style.height = "";
     
+    // 2. 画像を反映（キャッシュ回避のタイムスタンプ付き）
+    preview.src = canvas.toDataURL('image/png') + '?' + new Date().getTime();
+
+    // 3. 表示が落ち着くのを待ってから、CSSで「比率」を再認識させます
+    requestAnimationFrame(() => {
+        preview.style.setProperty('width', '100%', 'important');
+        preview.style.setProperty('height', 'auto', 'important');
+        preview.style.setProperty('aspect-ratio', '1920 / 818', 'important');
+        preview.style.setProperty('object-fit', 'contain', 'important');
+    });
+
     const label = document.getElementById('croppedLabel');
     if (label) label.textContent = `クロップ後（1920×818）`;
 }
