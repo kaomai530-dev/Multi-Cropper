@@ -1208,9 +1208,8 @@ let baseBoxHeight = 0;
         }
     });
 
-    // Custom aspect ratio
+   // Custom aspect ratio
     applyCustomRatioBtn.addEventListener('click', () => {
-        // parseFloatに変更して小数を読み取れるようにする
         const width = parseFloat(customWidthInput.value);
         const height = parseFloat(customHeightInput.value);
         
@@ -1223,27 +1222,25 @@ let baseBoxHeight = 0;
         ratioBtns.forEach(b => b.classList.remove('active'));
         
         // Set custom ratio
-TARGET_WIDTH = width;
-TARGET_HEIGHT = height;
-TARGET_RATIO = width / height;
+        TARGET_WIDTH = width;
+        TARGET_HEIGHT = height;
+        TARGET_RATIO = width / height;
+        currentRatio = `${width}:${height}`; 
+        
+        // Update labels
+        croppedLabel.textContent = `クロップ後 (${width} × ${height})`;
+        ratioInfo.textContent = `アスペクト比: ${width}:${height} (Custom)`;
+        
+        // Reset and recalculate
+        if (currentImage) {
+            zoomLevel = 1;
+            imagePanX = 0;
+            imagePanY = 0;
+            setupCropSelector(currentImage);
+            cropImage(currentImage);
+        }
+    });
 
-// currentRatioを入力された数値通りに反映
-currentRatio = `${width}:${height}`; 
-
-// Update labels
-croppedLabel.textContent = `クロップ後 (${width} × ${height})`;
-ratioInfo.textContent = `アスペクト比: ${width}:${height} (Custom)`;
-
-// Reset and recalculate
-if (currentImage) {
-    zoomLevel = 1;
-    imagePanX = 0;
-    imagePanY = 0;
-    // ここで一旦セレクター（青い枠）を再構築
-    setupCropSelector(currentImage);
-    // その後、強制的に再描画
-    cropImage(currentImage);
-}
     // Allow Enter key to apply custom ratio
     customWidthInput.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') applyCustomRatioBtn.click();
