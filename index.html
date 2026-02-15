@@ -1426,21 +1426,21 @@ let baseBoxHeight = 0;
     }
 
   function updateImageTransform() {
-    // 1. 画像がない場合は何もしない
-    if (!selectorImage || !currentImage) return;
+    // 1. 必要な画像データがあるか確認
+    if (!selectorImage || !originalImage) return;
 
-    // 2. 表示エリアの幅をその場で取得
+    // 2. コンテナをIDから直接取得（変数エラーを防ぐ）
     const container = document.getElementById('selector-container');
     if (!container) return;
-    const containerWidth = container.clientWidth;
 
-    // 3. 【修正の核心】
-    // 画像の「現在の幅」を基準にして、枠に収まる倍率を計算します。
-    // ズーム100%の時に枠内にぴったり収まるようになります。
-    const scale = containerWidth / currentImage.width;
-    const finalScale = scale * zoomLevel;
+    // 3. 【重要】縮小を止める計算
+    // currentImage ではなく originalImage を分母に使うことで
+    // 黒帯カット後に数値がズレるのを防ぎます
+    const baseScale = container.clientWidth / originalImage.width;
+    const finalScale = baseScale * zoomLevel;
 
-    // 4. 中央配置と移動、そして計算した倍率を適用
+    // 4. transformを適用
+    // calc(-50%) で中央を維持しつつ、計算した一定の倍率を適用します
     selectorImage.style.transform = `translate(calc(-50% + ${imagePanX}px), calc(-50% + ${imagePanY}px)) scale(${finalScale})`;
 }
     function startDrag(e) {
