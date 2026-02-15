@@ -1973,7 +1973,10 @@ let baseBoxHeight = 0;
     preview.style.setProperty('height', previewHeight + 'px', 'important');
     preview.style.setProperty('aspect-ratio', '1920 / 818', 'important');
     preview.style.setProperty('object-fit', 'fill', 'important');
-    // 枠内での表示位置を強制的に左上に固定（iPhoneのズレ対策）
+    preview.style.setProperty('position', 'relative', 'important');
+    preview.style.setProperty('left', '0', 'important');
+    preview.style.setProperty('top', '0', 'important');
+    preview.parentNode.style.overflow = 'hidden';
     preview.style.setProperty('margin', '0', 'important');
     preview.style.setProperty('padding', '0', 'important');
     preview.style.setProperty('display', 'block', 'important');  
