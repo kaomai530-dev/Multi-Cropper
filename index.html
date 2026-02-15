@@ -1426,20 +1426,16 @@ let baseBoxHeight = 0;
     }
 
   // 修正後
+// 1. ここを探す
 function updateImageTransform() {
-    // もし selectorImage か originalImage が読み込まれていなければ何もしない
+    // currentImage を originalImage に変えることで、計算の基準を固定します
     if (!selectorImage || !originalImage) return;
 
-    // 変数エラーを避けるため、その場で要素を直接取得
-    const container = document.getElementById('selector-container');
-    if (!container) return;
-
-    // 【ここが縮小防止の心臓部】
-    // currentImage（加工後）ではなく、originalImage（元画像）を基準にします
-    const scale = container.clientWidth / originalImage.width;
+    // 変数名は元のコードのまま維持します
+    const containerWidth = selectorContainer.clientWidth;
+    const scale = containerWidth / originalImage.width; 
     const finalScale = scale * zoomLevel;
 
-    // 画面に適用。元のコードにある imagePanX などの既存変数はそのまま使います。
     selectorImage.style.transform = `translate(calc(-50% + ${imagePanX}px), calc(-50% + ${imagePanY}px)) scale(${finalScale})`;
 }
     function drag(e) {
