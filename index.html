@@ -1139,10 +1139,12 @@ fileInput.addEventListener('change', (e) => {
             setupCropSelector();
             if (currentImage) {
                 cropImage(currentImage);
-                // modalという変数ではなく、IDから直接画面を探して表示させます
-                const targetModal = document.getElementById('modal');
-                if (targetModal) {
-                    targetModal.style.display = 'block';
+                // 変数 modal に頼らず、直接ID 'imageModal' か 'modal' を探して表示させます
+                const target = document.getElementById('imageModal') || document.getElementById('modal');
+                if (target) {
+                    target.style.display = 'block';
+                } else {
+                    console.error("表示する画面(ID:modal)が見つかりません");
                 }
             }
         img.src = event.target.result;
