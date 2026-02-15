@@ -1139,7 +1139,7 @@ fileInput.addEventListener('change', (e) => {
             setupCropSelector();
             if (currentImage) {
                 cropImage(currentImage);
-                // ID名を'imageModal'に修正しました
+                // HTMLのIDに合わせてimageModalを表示
                 const targetModal = document.getElementById('imageModal');
                 if (targetModal) {
                     targetModal.style.display = 'block';
@@ -1191,7 +1191,7 @@ ratioBtns.forEach(btn => {
     });
 });
 
-// --- [3] その他のイベント処理（末尾のカッコ漏れを修正） ---
+// --- [3] その他のイベント処理 ---
 customWidthInput.addEventListener('keypress', (e) => {
     if (e.key === 'Enter') applyCustomRatioBtn.click();
 });
@@ -1206,12 +1206,19 @@ document.addEventListener('touchmove', drag);
 document.addEventListener('mouseup', endDrag);
 document.addEventListener('touchend', endDrag);
 
-    zoomOut.addEventListener('click', () => {
-        setZoom(zoomLevel - 0.01);
-        if (currentImage) {
-            cropImage(currentImage);
-        }
-    });
+zoomOut.addEventListener('click', () => {
+    setZoom(zoomLevel - 0.01);
+    if (currentImage) {
+        cropImage(currentImage);
+    }
+});
+
+zoomIn.addEventListener('click', () => {
+    setZoom(zoomLevel + 0.01);
+    if (currentImage) {
+        cropImage(currentImage);
+    }
+});
 
     zoomReset.addEventListener('click', () => {
         setZoom(1);
