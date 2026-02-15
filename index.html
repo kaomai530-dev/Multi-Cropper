@@ -522,24 +522,15 @@
     }
 
 #croppedPreview {
-    border: 2px solid rgba(102, 126, 234, 0.3);
-    border-radius: 8px;
     display: block;
     margin: 10px auto;
-
-    /* Safariの自動計算を完全に殺し、シネスコ比率を強制します */
     width: 100% !important;
     max-width: 800px !important;
-    
-    /* 1. 高さを「自動」にせず、比率で固定する命令を明確に書きます */
-    aspect-ratio: 1920 / 818 !important;
-    height: auto !important;
-    
-    /* 2. 画像が枠をはみ出したり歪んだりするのを物理的に禁止します */
-    object-fit: contain !important; 
+    aspect-ratio: 1920 / 818 !important; /* 比率を固定 */
+    object-fit: contain !important;      /* 歪ませない */
     background-color: #000;
-
-    /* 3. 無用な最小高さを削除します（これが歪みの原因でした） */
+    border: 2px solid rgba(102, 126, 234, 0.3);
+    border-radius: 8px;
 }
     .download-modal {
         display: none;
@@ -1967,14 +1958,12 @@ let baseBoxHeight = 0;
     const previewWidth = Math.min(window.innerWidth * 0.9, 800); // 画面幅に合わせたプレビューサイズ
     const previewHeight = previewWidth * (818 / 1920); // 1920:818を強制
 
-    preview.style.setProperty('width', previewWidth + 'px', 'important');
-    preview.style.setProperty('height', previewHeight + 'px', 'important');
-    preview.style.setProperty('aspect-ratio', '1920 / 818', 'important');
-    preview.style.setProperty('object-fit', 'fill', 'important'); // containではなくfillで枠に強制密着させる
-    
-    // 画像反映
+// これだけでOK
     preview.src = canvas.toDataURL('image/png');
 
+    const label = document.getElementById('croppedLabel');
+    if (label) label.textContent = `クロップ後（1920×818）`;
+}
     const label = document.getElementById('croppedLabel');
     if (label) label.textContent = `クロップ後（1920×818）`;
 }
