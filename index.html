@@ -1202,31 +1202,43 @@ let baseBoxHeight = 0;
     // Auto remove black bars toggle
     autoRemoveCheckbox.addEventListener('change', (e) => {
         autoRemoveBlackBars = e.target.checked;
-        if (currentImage) {
-            if (autoRemoveBlackBars) {
-                // Apply black bar detection to original image
-                if (originalImage) {
-                    detectAndRemoveBlackBars(originalImage, originalImage.originalFilename);
+        if (!originalImage) return;
+
+        // 状態をリセット
+        zoomLevel = 1.0;
+        imagePanX = 0;
+        imagePanY = 0;
+
+        if (autoRemoveBlackBars) {
+            // 1. 黒帯を除去して currentImage を更新
+            detectAndRemoveBlackBars(originalImage, originalImage.originalFilename);
+            
+            // 2. 画像が生成されるのを少し待ってから、枠（Selector）を再構築
+            setTimeout(() => {
+                if (currentImage) {
+                    // 枠の計算基準（baseImageWidth）をカット後のサイズに更新
+                    baseImageWidth = currentImage.width;
+                    baseImageHeight = currentImage.height;
+                    
+                    // 表示倍率を更新
+                    updateImageTransform();
+                    // 【重要】新しい画像サイズを渡して枠を引き直す
+                    setupCropSelector(currentImage);
+                    // プレビューも更新
+                    cropImage(currentImage);
                 }
-            } else {
-                // Restore original unprocessed image
-                if (originalImage) {
-                    currentImage = originalImage;
-                    currentImage.originalFilename = originalImage.originalFilename;
-                }
-                // Reset zoom and position
-                zoomLevel = 1;
-                imagePanX = 0;
-                imagePanY = 0;
-                detectedCropBounds = null;
-                processedImage = null;
-                updateImageTransform();
-                setupCropSelector(currentImage);
-                cropImage(currentImage);
-            }
+            }, 100); // 100ミリ秒の待機で計算を安定させる
+        } else {
+            // チェック解除時：元画像(originalImage)にすべて戻す
+            currentImage = originalImage;
+            baseImageWidth = originalImage.width;
+            baseImageHeight = originalImage.height;
+            
+            updateImageTransform();
+            setupCropSelector(currentImage);
+            cropImage(currentImage);
         }
     });
-
    // Custom aspect ratio
     applyCustomRatioBtn.addEventListener('click', () => {
         const width = parseFloat(customWidthInput.value);
