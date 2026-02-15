@@ -1200,47 +1200,37 @@ let baseBoxHeight = 0;
         });
     });
     // Auto remove black bars toggle
-    autoRemoveCheckbox.addEventListener('change', (e) => {
-        autoRemoveBlackBars = e.target.checked;
-        
-        if (!originalImage) return;
+autoRemoveCheckbox.addEventListener('change', (e) => {
+    autoRemoveBlackBars = e.target.checked;
+    
+    if (!originalImage) return;
 
-        // 【最重要】位置とズームを一旦完全にゼロに戻す
-        zoomLevel = 1.0;
-        imagePanX = 0;
-        imagePanY = 0;
+    // 状態を完全に初期化（ズームや位置のズレをリセット）
+    zoomLevel = 1.0;
+    imagePanX = 0;
+    imagePanY = 0;
 
-        if (autoRemoveBlackBars) {
-            // --- 黒帯カット時 ---
-            // originalImage（絶対に変わらない元画像）を渡して、表示用(currentImage)を作る
-            detectAndRemoveBlackBars(originalImage, originalImage.originalFilename);
-            
-            // detectAndRemoveBlackBars内で currentImage = 新しいキャンバス となった直後に
-            // 「今の基準サイズ」をその画像のサイズで上書き固定する
-            setTimeout(() => {
-                if (currentImage) {
-                    baseImageWidth = currentImage.width;
-                    baseImageHeight = currentImage.height;
-                }
-                updateImageTransform();
-                setupCropSelector(currentImage);
-                cropImage(currentImage);
-            }, 100); 
-        } else {
-            // --- チェック解除時 ---
-            // 完全に、絶対に、最初の originalImage とそのサイズに戻す
-            currentImage = originalImage;
-            baseImageWidth = originalImage.width;
-            baseImageHeight = originalImage.height;
-            
-            detectedCropBounds = null;
-            processedImage = null;
-            
-            updateImageTransform();
-            setupCropSelector(currentImage);
-            cropImage(currentImage);
+    if (autoRemoveBlackBars) {
+        // 【重要】常に「不変の元画像」から検出し、新しいcurrentImageを生成する
+        detectAndRemoveBlackBars(originalImage, originalImage.originalFilename);
+    } else {
+        // 【Safari対策】チェック解除時は、currentImageを完全に元画像へ差し替える
+        currentImage = originalImage;
+        processedImage = null; 
+        detectedCropBounds = null;
+    }
+
+    // 画像の差し替えと描画を同期させる
+    setTimeout(() => {
+        if (currentImage) {
+            baseImageWidth = currentImage.width;
+            baseImageHeight = currentImage.height;
         }
-    });
+        updateImageTransform();
+        setupCropSelector(currentImage);
+        cropImage(currentImage);
+    }, 150); 
+});
    // Custom aspect ratio
     applyCustomRatioBtn.addEventListener('click', () => {
         const width = parseFloat(customWidthInput.value);
@@ -1418,16 +1408,14 @@ let baseBoxHeight = 0;
   function updateImageTransform() {
     if (!selectorImage || !originalImage) return;
     
-    // 表示の基準となる幅を決定（チェックが入っていればカット後の画像、なければ元画像）
-    const referenceWidth = (autoRemoveBlackBars && currentImage) ? currentImage.width : originalImage.width;
+    // 計算の基準を「現在表示中の画像幅」に固定
+    const currentW = currentImage ? currentImage.width : originalImage.width;
     
-    // 画面の幅（containerWidth）に対して、画像がぴったり収まる倍率を計算
-    const displayScale = containerWidth / referenceWidth;
-    
-    // 基本の倍率に、ユーザーのズーム操作（zoomLevel）を掛け合わせる
+    // コンテナ（黒い調整エリア）の幅に対して、画像がぴったり収まる倍率を計算
+    const displayScale = containerWidth / currentW;
     const finalScale = displayScale * zoomLevel;
 
-    // 中央に配置しつつ、移動（Pan）と計算した倍率（Scale）を適用
+    // translateの計算にcalcを使用し、中央配置を維持しながら移動と拡大を適用
     selectorImage.style.transform = `translate(calc(-50% + ${imagePanX}px), calc(-50% + ${imagePanY}px)) scale(${finalScale})`;
 }
     function startDrag(e) {
