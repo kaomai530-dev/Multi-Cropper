@@ -771,9 +771,9 @@ button,
             <div style="margin-top: 20px; padding: 15px; background: rgba(255, 255, 255, 0.05); border-radius: 10px; border: 2px solid rgba(102, 126, 234, 0.3);">
                 <h4 style="margin: 0 0 10px 0; color: #667eea; font-size: 0.95em;">Custom Aspect Ratio</h4>
                 <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
-                    <input type="number" id="customWidth" placeholder="Width" min="1" max="9999" style="width: 80px; padding: 8px; background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(102, 126, 234, 0.3); border-radius: 5px; color: white; font-size: 0.9em;">
+                    <input type="number" id="customWidth" step="0.01" placeholder="Width" min="1" max="9999" style="width: 80px; padding: 8px; background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(102, 126, 234, 0.3); border-radius: 5px; color: white; font-size: 0.9em;">
                     <span style="color: #aaa;">:</span>
-                    <input type="number" id="customHeight" placeholder="Height" min="1" max="9999" style="width: 80px; padding: 8px; background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(102, 126, 234, 0.3); border-radius: 5px; color: white; font-size: 0.9em;">
+                    <input type="number" id="customHeight" step="0.01" placeholder="Height" min="1" max="9999" style="width: 80px; padding: 8px; background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(102, 126, 234, 0.3); border-radius: 5px; color: white; font-size: 0.9em;">
                     <button id="applyCustomRatio" class="btn-primary" style="padding: 8px 15px; font-size: 0.85em;">Apply</button>
                 </div>
             </div>
@@ -1210,10 +1210,11 @@ let baseBoxHeight = 0;
 
     // Custom aspect ratio
     applyCustomRatioBtn.addEventListener('click', () => {
-        const width = parseInt(customWidthInput.value);
-        const height = parseInt(customHeightInput.value);
+        // parseFloatに変更して小数を読み取れるようにする
+        const width = parseFloat(customWidthInput.value);
+        const height = parseFloat(customHeightInput.value);
         
-        if (!width || !height || width < 1 || height < 1) {
+        if (!width || !height || width <= 0 || height <= 0) {
             alert('Please enter valid width and height (positive numbers)');
             return;
         }
@@ -1225,10 +1226,12 @@ let baseBoxHeight = 0;
         TARGET_WIDTH = width;
         TARGET_HEIGHT = height;
         TARGET_RATIO = width / height;
+        // currentRatioを入力された数値通りに反映
         currentRatio = `${width}:${height}`;
         
         // Update labels
-        croppedLabel.textContent = `クロップ後（${TARGET_WIDTH}×${TARGET_HEIGHT}）`;
+        // 1920x818固定ではなく、指定した比率のラベルを表示
+        croppedLabel.textContent = `クロップ後（${width}×${height}）`;
         ratioInfo.textContent = `アスペクト比: ${currentRatio} (Custom)`;
         
         // Reset and recalculate
