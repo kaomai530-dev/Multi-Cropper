@@ -1218,31 +1218,29 @@ let baseBoxHeight = 0;
             return;
         }
         
-       // 比率ボタンの動作設定
+       // 比率ボタンをクリックした時の処理
 ratioBtns.forEach(btn => {
     btn.addEventListener('click', () => {
+        // 1. ボタンの見た目を切り替える
         ratioBtns.forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
 
+        // 2. ボタンに設定された比率を数値で取得
         const ratio = parseFloat(btn.dataset.ratio);
         
-        // 数値を入力欄に反映
+        // 3. 重要：入力欄（3:1など）をボタンに合わせて書き換える
         if (ratio === 1) {
-            customWidthInput.value = "1";
-            customHeightInput.value = "1";
+            customWidthInput.value = 1;
+            customHeightInput.value = 1;
         } else {
             customWidthInput.value = ratio.toFixed(3);
-            customHeightInput.value = "1";
+            customHeightInput.value = 1;
         }
+        setupCropSelector();
 
-        // 数値を内部変数に反映
-        TARGET_WIDTH = parseFloat(customWidthInput.value);
-        TARGET_HEIGHT = parseFloat(customHeightInput.value);
-        TARGET_RATIO = TARGET_WIDTH / TARGET_HEIGHT;
-
-        // 枠の形を更新してクロップを実行
-        setupCropSelector(); 
-        if (currentImage) cropImage(currentImage);
+        // 4. 最重要：Applyボタンをプログラムで勝手に押す
+        // これで「枠の形」が瞬時に切り替わります
+        applyCustomRatioBtn.click();
     });
 });
     // Allow Enter key to apply custom ratio
