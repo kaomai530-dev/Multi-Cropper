@@ -1416,8 +1416,19 @@ let baseBoxHeight = 0;
     }
 
   function updateImageTransform() {
-    // scaleを先に評価させないよう、この順序を厳守します
-    selectorImage.style.transform = `translate(${imagePanX}px, ${imagePanY}px) scale(${zoomLevel})`;
+    if (!selectorImage || !originalImage) return;
+    
+    // 表示の基準となる幅を決定（チェックが入っていればカット後の画像、なければ元画像）
+    const referenceWidth = (autoRemoveBlackBars && currentImage) ? currentImage.width : originalImage.width;
+    
+    // 画面の幅（containerWidth）に対して、画像がぴったり収まる倍率を計算
+    const displayScale = containerWidth / referenceWidth;
+    
+    // 基本の倍率に、ユーザーのズーム操作（zoomLevel）を掛け合わせる
+    const finalScale = displayScale * zoomLevel;
+
+    // 中央に配置しつつ、移動（Pan）と計算した倍率（Scale）を適用
+    selectorImage.style.transform = `translate(calc(-50% + ${imagePanX}px), calc(-50% + ${imagePanY}px)) scale(${finalScale})`;
 }
     function startDrag(e) {
         if (isPinching) return;
