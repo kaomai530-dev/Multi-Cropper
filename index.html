@@ -522,22 +522,24 @@
     }
 
 #croppedPreview {
+    border: 2px solid rgba(102, 126, 234, 0.3);
+    border-radius: 8px;
     display: block;
     margin: 10px auto;
+
+    /* Safariの自動計算を完全に殺し、シネスコ比率を強制します */
     width: 100% !important;
     max-width: 800px !important;
     
-    /* 1. Safariに2.35:1(1920:818)の比率を物理的に強制する */
+    /* 1. 高さを「自動」にせず、比率で固定する命令を明確に書きます */
     aspect-ratio: 1920 / 818 !important;
-    
-    /* 2. Safariが勝手に高さを伸ばすのを禁止 */
     height: auto !important;
     
-    /* 3. 画像が歪むのを防ぎ、枠の中に正しく収める */
+    /* 2. 画像が枠をはみ出したり歪んだりするのを物理的に禁止します */
     object-fit: contain !important; 
     background-color: #000;
-    border: 2px solid rgba(102, 126, 234, 0.3);
-    border-radius: 8px;
+
+    /* 3. 無用な最小高さを削除します（これが歪みの原因でした） */
 }
     .download-modal {
         display: none;
@@ -1940,16 +1942,14 @@ let baseBoxHeight = 0;
     if (!canvas || !preview) return;
     const ctx = canvas.getContext('2d');
 
-    // 出力サイズを1920x818に厳格固定
-    const outW = 1920;
-    const outH = 818;
-    canvas.width = outW;
-    canvas.height = outH;
+    // 1. 出力サイズを1920x818で厳格に固定
+    canvas.width = 1920;
+    canvas.height = 818;
 
+    // 2. 切り出し計算
     const nw = img.naturalWidth;
     const nh = img.naturalHeight;
     const scale = nw / baseImageWidth;
-    
     const sw = (baseBoxWidth * scale) / zoomLevel;
     const sh = (baseBoxHeight * scale) / zoomLevel;
     const dx = (imagePanX * scale) / zoomLevel;
@@ -1957,21 +1957,26 @@ let baseBoxHeight = 0;
     const sx = (nw / 2) - (sw / 2) - dx;
     const sy = (nh / 2) - (sh / 2) - dy;
 
-    // 黒塗りで初期化してから描画
+    // 3. 描画
     ctx.fillStyle = "#000";
-    ctx.fillRect(0, 0, outW, outH);
-    ctx.drawImage(img, sx, sy, sw, sh, 0, 0, outW, outH);
+    ctx.fillRect(0, 0, 1920, 818);
+    ctx.drawImage(img, sx, sy, sw, sh, 0, 0, 1920, 818);
 
-    // Safariのキャッシュと表示バグを破壊するための処理
-    // 1. 一旦ソースを空にする
-    preview.src = "";
-    // 2. インラインスタイルをリセット（CSSのaspect-ratioを優先させるため）
-    preview.removeAttribute('style');
-    // 3. データURLを注入
+    // 4. 【解決の核心】Safariが「絶対に」逆らえないように物理的なサイズを直接書き込む
+    // CSSファイルやキャッシュを無視し、このタグの形を 1920:818 に「今ここで」固定します
+    const previewWidth = Math.min(window.innerWidth * 0.9, 800); // 画面幅に合わせたプレビューサイズ
+    const previewHeight = previewWidth * (818 / 1920); // 1920:818を強制
+
+    preview.style.setProperty('width', previewWidth + 'px', 'important');
+    preview.style.setProperty('height', previewHeight + 'px', 'important');
+    preview.style.setProperty('aspect-ratio', '1920 / 818', 'important');
+    preview.style.setProperty('object-fit', 'fill', 'important'); // containではなくfillで枠に強制密着させる
+    
+    // 画像反映
     preview.src = canvas.toDataURL('image/png');
 
     const label = document.getElementById('croppedLabel');
-    if (label) label.textContent = `クロップ後（1,920 × 818）`;
+    if (label) label.textContent = `クロップ後（1920×818）`;
 }
     // --- 修正版セット（ここまで） ---
     resetBtn.addEventListener('click', () => {
