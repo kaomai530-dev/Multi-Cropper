@@ -1936,10 +1936,11 @@ let baseBoxHeight = 0;
     if (!img || !baseImageWidth || !baseBoxWidth) return;
     
     const canvas = document.getElementById('croppedCanvas');
-    const previewContainer = document.getElementById('previewContainer') || document.querySelector('.preview-item'); 
-    if (!canvas || !previewContainer) return;
+    const preview = document.getElementById('croppedPreview');
+    if (!canvas || !preview) return;
     const ctx = canvas.getContext('2d');
 
+    // 1. 出力サイズを1920x818で固定
     const outW = 1920;
     const outH = 818; 
     canvas.width = outW;
@@ -1953,31 +1954,23 @@ let baseBoxHeight = 0;
     const sx = Math.round((img.naturalWidth / 2) - (sw / 2) - dx);
     const sy = Math.round((img.naturalHeight / 2) - (sh / 2) - dy);
 
-    ctx.fillStyle = "#000000";
+    // 2. 描画
+    ctx.fillStyle = "#000";
     ctx.fillRect(0, 0, outW, outH);
     ctx.drawImage(img, sx, sy, sw, sh, 0, 0, outW, outH);
 
-    // --- ここが解決の鍵：古いタグを捨てて、新品を作り直します ---
-    
-    // 1. 今ある歪んだプレビュー画像を消す
-    const oldPreview = document.getElementById('croppedPreview');
-    if (oldPreview) oldPreview.remove();
+    // 3. 【解決の核心】imgタグを使わず、canvasそのものをプレビューとして見せる
+    // Safariのimgタグにこびりついた「歪んだ記憶」を完全に無視します
+    preview.style.display = 'none'; // 古いimgタグは非表示に
+    canvas.style.display = 'block'; // 描画したキャンバスそのものを表示
+    canvas.style.width = '100%';
+    canvas.style.maxWidth = '800px';
+    canvas.style.height = 'auto';
+    canvas.style.margin = '10px auto';
+    canvas.style.borderRadius = '8px';
+    canvas.style.border = '2px solid rgba(102, 126, 234, 0.3)';
 
-    // 2. まっさらな新しい <img> タグを作成する
-    const newPreview = document.createElement('img');
-    newPreview.id = 'croppedPreview';
-    
-    // 3. 歪みを防ぐためのスタイルを直接流し込む
-    newPreview.style.cssText = "width:100% !important; max-width:800px !important; height:auto !important; display:block; margin:10px auto; border-radius:8px; object-fit:contain !important; background:#000;";
-    
-    // 4. 画像データを流し込む
-    newPreview.src = canvas.toDataURL('image/png');
-
-    // 5. 画面上の元の場所に差し込む
-    // （※もし croppedLabel の下に配置したい場合はその位置に合わせて挿入します）
     const label = document.getElementById('croppedLabel');
-    label.parentNode.insertBefore(newPreview, label.nextSibling);
-
     if (label) label.textContent = `クロップ後（1920×818）`;
 }
     // --- 修正版セット（ここまで） ---
