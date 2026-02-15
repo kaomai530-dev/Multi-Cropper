@@ -1118,11 +1118,9 @@ let baseBoxHeight = 0;
     const customWidthInput = document.getElementById('customWidth');
     const customHeightInput = document.getElementById('customHeight');
     const applyCustomRatioBtn = document.getElementById('applyCustomRatio');
-// --- ここから上書き ---
-// アップロードエリアをクリックした時
+// --- [1] 画像選択・ドラッグ&ドロップの処理 ---
 uploadArea.addEventListener('click', () => fileInput.click());
 
-// ファイルが選択された時の処理
 fileInput.addEventListener('change', (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -1146,7 +1144,6 @@ fileInput.addEventListener('change', (e) => {
     reader.readAsDataURL(file);
 });
 
-// ドロップ操作
 uploadArea.addEventListener('dragover', (e) => {
     e.preventDefault();
     uploadArea.classList.add('dragover');
@@ -1161,70 +1158,15 @@ uploadArea.addEventListener('drop', (e) => {
         fileInput.dispatchEvent(new Event('change'));
     }
 });
-// --- ここまで ---
-    // Ratio selection
-    ratioBtns.forEach(btn => {
-        btn.addEventListener('click', () => {
-            ratioBtns.forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            
-            currentRatio = btn.dataset.ratio;
-            TARGET_WIDTH = parseInt(btn.dataset.width);
-            TARGET_HEIGHT = parseInt(btn.dataset.height);
-            TARGET_RATIO = parseFloat(btn.dataset.ratio);
-            
-            // Update labels
-            croppedLabel.textContent = `クロップ後（${TARGET_WIDTH}×${TARGET_HEIGHT}）`;
-            const ratioName = RATIOS[currentRatio].name;
-            ratioInfo.textContent = `アスペクト比: ${currentRatio}:1 (${ratioName})`;
-            
-            // Reset and recalculate
-            if (currentImage) {
-                zoomLevel = 1;
-                imagePanX = 0;
-                imagePanY = 0;
-                setupCropSelector(currentImage);
-                cropImage(currentImage);
-            }
-        });
-    });
 
-    // Auto remove black bars toggle
-    autoRemoveCheckbox.addEventListener('change', (e) => {
-        autoRemoveBlackBars = e.target.checked;
-        if (currentImage) {
-            if (autoRemoveBlackBars) {
-                // Apply black bar detection to original image
-                if (originalImage) {
-                    detectAndRemoveBlackBars(originalImage, originalImage.originalFilename);
-                }
-            } else {
-                // Restore original unprocessed image
-                if (originalImage) {
-                    currentImage = originalImage;
-                    currentImage.originalFilename = originalImage.originalFilename;
-                }
-                // Reset zoom and position
-                zoomLevel = 1;
-imagePanX = 0;
-        imagePanY = 0;
-        detectedCropBounds = null;
-        processedImage = null;
-        updateImageTransform();
-        setupCropSelector(currentImage);
-        cropImage(currentImage);
-    } // reader.onload の終わり
-    reader.readAsDataURL(file);
-}); // file input change の終わり
-
-// --- ここから下に比率ボタンの処理を書く ---
-
+// --- [2] 比率ボタン（1:1等）の連動処理 ---
 ratioBtns.forEach(btn => {
     btn.addEventListener('click', () => {
         ratioBtns.forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
 
         const ratio = parseFloat(btn.dataset.ratio);
+        
         if (ratio === 1) {
             customWidthInput.value = "1";
             customHeightInput.value = "1";
@@ -1240,7 +1182,7 @@ ratioBtns.forEach(btn => {
         setupCropSelector(); 
         if (currentImage) cropImage(currentImage);
     });
-});
+});;
     // Allow Enter key to apply custom ratio
     customWidthInput.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') applyCustomRatioBtn.click();
