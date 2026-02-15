@@ -1426,21 +1426,21 @@ let baseBoxHeight = 0;
     }
 
   function updateImageTransform() {
-    // 1. 必要な画像データがあるか確認
+    // 1. 必要な要素があるか確認（currentImageではなくoriginalImageを基準にする）
     if (!selectorImage || !originalImage) return;
 
-    // 2. コンテナをIDから直接取得（変数エラーを防ぐ）
+    // 2. 表示エリアの幅をその場で取得
     const container = document.getElementById('selector-container');
     if (!container) return;
+    const containerWidth = container.clientWidth;
 
-    // 3. 【重要】縮小を止める計算
-    // currentImage ではなく originalImage を分母に使うことで
-    // 黒帯カット後に数値がズレるのを防ぎます
-    const baseScale = container.clientWidth / originalImage.width;
-    const finalScale = baseScale * zoomLevel;
+    // 3. 【ループと縮小を止める決定打】
+    // どんなに黒帯をカットしても、計算の分母を「最初の元画像の幅」に固定します。
+    // これにより、計算結果が一定になり、ループが止まります。
+    const scale = containerWidth / originalImage.width;
+    const finalScale = scale * zoomLevel;
 
-    // 4. transformを適用
-    // calc(-50%) で中央を維持しつつ、計算した一定の倍率を適用します
+    // 4. 反映（中央配置を維持）
     selectorImage.style.transform = `translate(calc(-50% + ${imagePanX}px), calc(-50% + ${imagePanY}px)) scale(${finalScale})`;
 }
     function startDrag(e) {
