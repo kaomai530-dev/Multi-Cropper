@@ -1159,67 +1159,74 @@ let baseBoxHeight = 0;
             ratioBtns.forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
             
-            // ボタンの比率を数値で取得
+            // ボタンから値を取得
             const ratioValue = parseFloat(btn.dataset.ratio);
-            
-            // 入力欄(Custom Aspect Ratio)をボタンの比率に書き換える
+            const w = parseFloat(btn.dataset.width) || ratioValue;
+            const h = parseFloat(btn.dataset.height) || 1;
+
+            // 重要：カスタム入力欄を更新する
             if (ratioValue === 1) {
                 customWidthInput.value = "1";
                 customHeightInput.value = "1";
             } else {
+                // 2.844などの値を正確に反映
                 customWidthInput.value = ratioValue.toFixed(3);
                 customHeightInput.value = "1";
             }
             
-            // 内部の比率設定を更新
-            TARGET_WIDTH = parseFloat(customWidthInput.value);
-            TARGET_HEIGHT = parseFloat(customHeightInput.value);
-            TARGET_RATIO = TARGET_WIDTH / TARGET_HEIGHT;
+            currentRatio = btn.dataset.ratio;
+            TARGET_WIDTH = w;
+            TARGET_HEIGHT = h;
+            TARGET_RATIO = ratioValue;
             
+            // Update labels
+            if (typeof croppedLabel !== 'undefined') {
+                croppedLabel.textContent = `クロップ後（${TARGET_WIDTH}×${TARGET_HEIGHT}）`;
+            }
+            if (typeof ratioInfo !== 'undefined' && RATIOS[currentRatio]) {
+                const ratioName = RATIOS[currentRatio].name;
+                ratioInfo.textContent = `アスペクト比: ${currentRatio}:1 (${ratioName})`;
+            }
+            
+            // Reset and recalculate
             if (currentImage) {
+                zoomLevel = 1;
+                imagePanX = 0;
+                imagePanY = 0;
+                updateImageTransform(); // 座標リセットを視覚的に反映
                 setupCropSelector(currentImage);
                 cropImage(currentImage);
             }
         });
     });
-   // Auto remove black bars toggle
+    // Auto remove black bars toggle
     autoRemoveCheckbox.addEventListener('change', (e) => {
         autoRemoveBlackBars = e.target.checked;
-        if (!originalImage) return;
-
-        // 座標とズームを一旦完全にリセット（縮小防止の鍵）
-        zoomLevel = 1.0;
-        imagePanX = 0;
-        imagePanY = 0;
-
-        if (autoRemoveBlackBars) {
-            // 黒帯除去を実行（結果はcurrentImageに入る）
-            detectAndRemoveBlackBars(originalImage, originalImage.originalFilename);
-            
-            // 画像が生成されるのを待ってから描画（setIntervalで確実にする）
-            const refreshInterval = setInterval(() => {
-                if (currentImage && currentImage.width > 0) {
-                    baseImageWidth = currentImage.width;
-                    baseImageHeight = currentImage.height;
-                    updateImageTransform();
-                    setupCropSelector(currentImage);
-                    cropImage(currentImage);
-                    clearInterval(refreshInterval);
+        if (currentImage) {
+            if (autoRemoveBlackBars) {
+                // Apply black bar detection to original image
+                if (originalImage) {
+                    detectAndRemoveBlackBars(originalImage, originalImage.originalFilename);
                 }
-            }, 50);
-        } else {
-            // チェック解除時：完全に元画像に戻し、すべての加工データを消去
-            currentImage = originalImage;
-            processedImage = null;
-            detectedCropBounds = null;
-            baseImageWidth = originalImage.width;
-            baseImageHeight = originalImage.height;
-            
-            updateImageTransform();
-            setupCropSelector(currentImage);
-            cropImage(currentImage);
+            } else {
+                // Restore original unprocessed image
+                if (originalImage) {
+                    currentImage = originalImage;
+                    currentImage.originalFilename = originalImage.originalFilename;
+                }
+                // Reset zoom and position
+                zoomLevel = 1;
+                imagePanX = 0;
+                imagePanY = 0;
+                detectedCropBounds = null;
+                processedImage = null;
+                updateImageTransform();
+                setupCropSelector(currentImage);
+                cropImage(currentImage);
+            }
         }
     });
+
    // Custom aspect ratio
     applyCustomRatioBtn.addEventListener('click', () => {
         const width = parseFloat(customWidthInput.value);
@@ -1395,18 +1402,8 @@ let baseBoxHeight = 0;
     }
 
   function updateImageTransform() {
-    if (!selectorImage || !originalImage) return;
-    
-    // 表示の基準を、チェック状態に合わせて「今の画像」に固定
-    const activeImg = (autoRemoveBlackBars && currentImage) ? currentImage : originalImage;
-    if (!activeImg.width) return;
-
-    // 画面幅に合わせる計算を毎回ここで行う（これで縮小が止まる）
-    const displayScale = containerWidth / activeImg.width;
-    const finalScale = displayScale * zoomLevel;
-
-    // 中央配置を維持しながら、移動と倍率を適用
-    selectorImage.style.transform = `translate(calc(-50% + ${imagePanX}px), calc(-50% + ${imagePanY}px)) scale(${finalScale})`;
+    // scaleを先に評価させないよう、この順序を厳守します
+    selectorImage.style.transform = `translate(${imagePanX}px, ${imagePanY}px) scale(${zoomLevel})`;
 }
     function startDrag(e) {
         if (isPinching) return;
