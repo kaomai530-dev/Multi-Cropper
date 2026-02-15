@@ -1218,15 +1218,13 @@ let baseBoxHeight = 0;
             return;
         }
         
-       // 比率ボタンの動作設定
-ratioBtns.forEach(btn => {
+       ratioBtns.forEach(btn => {
     btn.addEventListener('click', () => {
         ratioBtns.forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
 
         const ratio = parseFloat(btn.dataset.ratio);
         
-        // 数値を入力欄に反映
         if (ratio === 1) {
             customWidthInput.value = "1";
             customHeightInput.value = "1";
@@ -1235,14 +1233,14 @@ ratioBtns.forEach(btn => {
             customHeightInput.value = "1";
         }
 
-        // 数値を内部変数に反映
         TARGET_WIDTH = parseFloat(customWidthInput.value);
         TARGET_HEIGHT = parseFloat(customHeightInput.value);
         TARGET_RATIO = TARGET_WIDTH / TARGET_HEIGHT;
 
-        // 枠の形を更新してクロップを実行
         setupCropSelector(); 
-        if (currentImage) cropImage(currentImage);
+        if (currentImage) {
+            cropImage(currentImage);
+        }
     });
 });
     // Allow Enter key to apply custom ratio
