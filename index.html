@@ -1948,34 +1948,33 @@ let baseBoxHeight = 0;
     if (!canvas || !preview) return;
     const ctx = canvas.getContext('2d');
 
-    // 1. 出力サイズをユーザー指定の数値に設定
-    canvas.width = TARGET_WIDTH;
-    canvas.height = TARGET_HEIGHT;
+    // --- ここが修正ポイント！ ---
+    // 入力されたのが「3」などの小さい値でも、実用的なサイズ（横幅1920px基準）に変換する
+    const exportWidth = (TARGET_WIDTH < 100) ? 1920 : TARGET_WIDTH;
+    const exportHeight = exportWidth / TARGET_RATIO;
 
-    // 2. 【ここが重要】倍率を正しく計算し直す
-    // 画面上の青い枠（baseBoxWidth）を、実際の出力サイズ（TARGET_WIDTH）に変換する倍率
-    const outputScale = TARGET_WIDTH / baseBoxWidth;
+    canvas.width = exportWidth;
+    canvas.height = exportHeight;
 
-    // 3. 描画位置の計算（ズレを解消）
-    // zoomLevelがかかった状態の「画面上のサイズ」を、出力サイズへスケールアップ
+    // 画面上の青枠（baseBoxWidth）を、実際の出力サイズに変換する倍率
+    const outputScale = exportWidth / baseBoxWidth;
+
     const finalDrawW = (baseImageWidth * zoomLevel) * outputScale;
     const finalDrawH = (baseImageHeight * zoomLevel) * outputScale;
     
-    // 画像の左上座標（TARGET_WIDTHの中心から、画像サイズとパンの移動量を加味）
-    const finalDrawX = (TARGET_WIDTH / 2) - (finalDrawW / 2) + (imagePanX * outputScale);
-    const finalDrawY = (TARGET_HEIGHT / 2) - (finalDrawH / 2) + (imagePanY * outputScale);
+    const finalDrawX = (exportWidth / 2) - (finalDrawW / 2) + (imagePanX * outputScale);
+    const finalDrawY = (exportHeight / 2) - (finalDrawH / 2) + (imagePanY * outputScale);
 
-    // 4. 描画実行
+    // 描画
     ctx.fillStyle = "#000";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.drawImage(img, finalDrawX, finalDrawY, finalDrawW, finalDrawH);
 
-    // 5. プレビュー表示の更新
+    // プレビュー表示
     preview.src = canvas.toDataURL('image/png');
-    
-    // ラベルの更新
+
     const label = document.getElementById('croppedLabel');
-    if (label) label.textContent = `クロップ後 (${TARGET_WIDTH} × ${TARGET_HEIGHT})`;
+    if (label) label.textContent = `クロップ後 (${Math.round(exportWidth)} × ${Math.round(exportHeight)})`;
 }
     // --- 修正版セット（ここまで） ---
     resetBtn.addEventListener('click', () => {
