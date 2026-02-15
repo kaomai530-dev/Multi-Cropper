@@ -1205,23 +1205,27 @@ let baseBoxHeight = 0;
         autoRemoveBlackBars = e.target.checked;
         if (currentImage) {
             if (autoRemoveBlackBars) {
-                // Apply black bar detection to original image
+                // 黒帯除去を適用
                 if (originalImage) {
+                    // detectAndRemoveBlackBars内で再描画まで完結しない場合があるため
+                    // 除去後の画像に基づいてフレームを再構成させる
                     detectAndRemoveBlackBars(originalImage, originalImage.originalFilename);
                 }
             } else {
-                // Restore original unprocessed image
+                // 元の未加工画像に戻す
                 if (originalImage) {
                     currentImage = originalImage;
                     currentImage.originalFilename = originalImage.originalFilename;
                 }
-                // Reset zoom and position
+                // ズームと位置を完全にリセット
                 zoomLevel = 1;
                 imagePanX = 0;
                 imagePanY = 0;
                 detectedCropBounds = null;
                 processedImage = null;
+                
                 updateImageTransform();
+                // フレームを元の画像サイズに合わせて再計算
                 setupCropSelector(currentImage);
                 cropImage(currentImage);
             }
