@@ -1118,50 +1118,41 @@ let baseBoxHeight = 0;
     const customWidthInput = document.getElementById('customWidth');
     const customHeightInput = document.getElementById('customHeight');
     const applyCustomRatioBtn = document.getElementById('applyCustomRatio');
-// --- ここから上書き ---
-// アップロードエリアをクリックした時
-uploadArea.addEventListener('click', () => fileInput.click());
 
-// ファイルが選択された時の処理
-fileInput.addEventListener('change', (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
+    // Upload area click
+    uploadArea.addEventListener('click', () => fileInput.click());
 
-    const reader = new FileReader();
-    reader.onload = function(event) {
-        const img = new Image();
-        img.onload = function() {
-            currentImage = img;
-            baseImageWidth = img.width;
-            baseImageHeight = img.height;
-            zoomLevel = 1.0;
-            imagePanX = 0;
-            imagePanY = 0;
-            updateImageTransform();
-            setupCropSelector();
-            if (currentImage) cropImage(currentImage);
-        };
-        img.src = event.target.result;
-    };
-    reader.readAsDataURL(file);
-});
+    // File selection
+    fileInput.addEventListener('change', (e) => {
+        if (e.target.files && e.target.files.length > 0) {
+            imageQueue = Array.from(e.target.files);
+            currentImageIndex = 0;
+            processedImages = [];
+            loadImageFromQueue();
+        }
+    });
 
-// ドロップ操作
-uploadArea.addEventListener('dragover', (e) => {
-    e.preventDefault();
-    uploadArea.classList.add('dragover');
-});
-uploadArea.addEventListener('dragleave', () => uploadArea.classList.remove('dragover'));
-uploadArea.addEventListener('drop', (e) => {
-    e.preventDefault();
-    uploadArea.classList.remove('dragover');
-    const file = e.dataTransfer.files[0];
-    if (file) {
-        fileInput.files = e.dataTransfer.files;
-        fileInput.dispatchEvent(new Event('change'));
-    }
-});
-// --- ここまで ---
+    // Drag and drop
+    uploadArea.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        uploadArea.classList.add('dragover');
+    });
+
+    uploadArea.addEventListener('dragleave', () => {
+        uploadArea.classList.remove('dragover');
+    });
+
+    uploadArea.addEventListener('drop', (e) => {
+        e.preventDefault();
+        uploadArea.classList.remove('dragover');
+        if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+            imageQueue = Array.from(e.dataTransfer.files);
+            currentImageIndex = 0;
+            processedImages = [];
+            loadImageFromQueue();
+        }
+    });
+
     // Ratio selection
     ratioBtns.forEach(btn => {
         btn.addEventListener('click', () => {
