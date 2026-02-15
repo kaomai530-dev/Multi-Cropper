@@ -1159,27 +1159,46 @@ let baseBoxHeight = 0;
             ratioBtns.forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
             
+            // ボタンから値を取得
+            const ratioValue = parseFloat(btn.dataset.ratio);
+            const w = parseFloat(btn.dataset.width) || ratioValue;
+            const h = parseFloat(btn.dataset.height) || 1;
+
+            // 重要：カスタム入力欄を更新する
+            if (ratioValue === 1) {
+                customWidthInput.value = "1";
+                customHeightInput.value = "1";
+            } else {
+                // 2.844などの値を正確に反映
+                customWidthInput.value = ratioValue.toFixed(3);
+                customHeightInput.value = "1";
+            }
+            
             currentRatio = btn.dataset.ratio;
-            TARGET_WIDTH = parseInt(btn.dataset.width);
-            TARGET_HEIGHT = parseInt(btn.dataset.height);
-            TARGET_RATIO = parseFloat(btn.dataset.ratio);
+            TARGET_WIDTH = w;
+            TARGET_HEIGHT = h;
+            TARGET_RATIO = ratioValue;
             
             // Update labels
-            croppedLabel.textContent = `クロップ後（${TARGET_WIDTH}×${TARGET_HEIGHT}）`;
-            const ratioName = RATIOS[currentRatio].name;
-            ratioInfo.textContent = `アスペクト比: ${currentRatio}:1 (${ratioName})`;
+            if (typeof croppedLabel !== 'undefined') {
+                croppedLabel.textContent = `クロップ後（${TARGET_WIDTH}×${TARGET_HEIGHT}）`;
+            }
+            if (typeof ratioInfo !== 'undefined' && RATIOS[currentRatio]) {
+                const ratioName = RATIOS[currentRatio].name;
+                ratioInfo.textContent = `アスペクト比: ${currentRatio}:1 (${ratioName})`;
+            }
             
             // Reset and recalculate
             if (currentImage) {
                 zoomLevel = 1;
                 imagePanX = 0;
                 imagePanY = 0;
+                updateImageTransform(); // 座標リセットを視覚的に反映
                 setupCropSelector(currentImage);
                 cropImage(currentImage);
             }
         });
     });
-
     // Auto remove black bars toggle
     autoRemoveCheckbox.addEventListener('change', (e) => {
         autoRemoveBlackBars = e.target.checked;
