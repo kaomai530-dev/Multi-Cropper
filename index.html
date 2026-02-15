@@ -532,7 +532,7 @@
     max-width: 800px !important;
     
     /* 1. 高さを「自動」にせず、比率で固定する命令を明確に書きます */
-    aspect-ratio: 1920 / 818 !important;
+   
     height: auto !important;
     
     /* 2. 画像が枠をはみ出したり歪んだりするのを物理的に禁止します */
@@ -1948,53 +1948,50 @@ let baseBoxHeight = 0;
     if (!canvas || !preview) return;
     const ctx = canvas.getContext('2d');
 
-    // 1. 出力キャンバスを1920x818に固定
-    canvas.width = 1920;
-    canvas.height = 818;
+    // 1. 出力キャンバスを「入力された数値」に合わせる
+    canvas.width = TARGET_WIDTH;
+    canvas.height = TARGET_HEIGHT;
 
-    // 2. 【最重要】「見たまま」を1920pxに投影する計算
-    // 調整画面の枠（baseBoxWidth）が1920pxに対して何倍の比率か
-    const outputScale = 1920 / baseBoxWidth;
+    // 2. 「見たまま」を指定サイズに投影する計算
+    const outputScale = TARGET_WIDTH / baseBoxWidth;
 
-    // 調整画面での画像の表示サイズを、そのまま1920pxの世界にスケールアップ
     const finalDrawW = (baseImageWidth * zoomLevel) * outputScale;
     const finalDrawH = (baseImageHeight * zoomLevel) * outputScale;
     
-    // 画像の左上角の座標を決定（中央配置 + パンの移動量を1920px換算）
-    const finalDrawX = (1920 - finalDrawW) / 2 + (imagePanX * outputScale);
-    const finalDrawY = (818 - finalDrawH) / 2 + (imagePanY * outputScale);
+    const finalDrawX = (TARGET_WIDTH - finalDrawW) / 2 + (imagePanX * outputScale);
+    const finalDrawY = (TARGET_HEIGHT - finalDrawH) / 2 + (imagePanY * outputScale);
 
     // 3. 描画（背景を黒で塗りつぶしてから画像を描画）
     ctx.fillStyle = "#000";
-    ctx.fillRect(0, 0, 1920, 818);
+    ctx.fillRect(0, 0, TARGET_WIDTH, TARGET_HEIGHT);
     
-    // この一行が、上の調整画面と下のプレビューを完全に同期させます
     ctx.drawImage(img, finalDrawX, finalDrawY, finalDrawW, finalDrawH);
 
-    // 4. Safari向けのプレビュー表示の強制固定（既存の処理）
+    // 4. プレビュー表示の更新（比率を固定せず可変にする）
     const previewWidth = Math.min(window.innerWidth * 0.9, 800);
-    const previewHeight = previewWidth * (818 / 1920);
+    // 高さを比率（TARGET_RATIO）に合わせて計算
+    const previewHeight = previewWidth / TARGET_RATIO;
 
-    // プレビューの表示サイズを設定
-    preview.style.setProperty('width', '100%', 'important'); // 枠の幅に合わせる
+    preview.style.setProperty('width', '100%', 'important');
     preview.style.setProperty('height', 'auto', 'important');
     preview.style.setProperty('max-width', previewWidth + 'px', 'important');
     
-    // iPhoneでの右側切れ・ズレ対策（座標を左上に完全固定）
+    // アスペクト比の固定を解除（ここが重要！）
+    preview.style.aspectRatio = `${TARGET_WIDTH} / ${TARGET_HEIGHT}`;
+    
     preview.style.setProperty('position', 'relative', 'important');
     preview.style.setProperty('left', '0', 'important');
     preview.style.setProperty('top', '0', 'important');
-    preview.style.setProperty('margin', '0 auto', 'important'); // 中央寄せ
+    preview.style.setProperty('margin', '0 auto', 'important');
     preview.style.setProperty('display', 'block', 'important');
     
-    // 親要素からはみ出さないように設定
     preview.parentNode.style.overflow = 'hidden';
     preview.parentNode.style.display = 'flex';
     preview.parentNode.style.justifyContent = 'center';
     preview.src = canvas.toDataURL('image/png');
 
     const label = document.getElementById('croppedLabel');
-    if (label) label.textContent = `クロップ後（1920×818）`;
+    if (label) label.textContent = `クロップ後 (${TARGET_WIDTH} × ${TARGET_HEIGHT})`;
 }
     // --- 修正版セット（ここまで） ---
     resetBtn.addEventListener('click', () => {
