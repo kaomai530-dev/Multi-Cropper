@@ -1200,37 +1200,33 @@ let baseBoxHeight = 0;
         });
     });
     // Auto remove black bars toggle
-autoRemoveCheckbox.addEventListener('change', (e) => {
-    autoRemoveBlackBars = e.target.checked;
-    
-    if (!originalImage) return;
-
-    // 状態を完全に初期化（ズームや位置のズレをリセット）
-    zoomLevel = 1.0;
-    imagePanX = 0;
-    imagePanY = 0;
-
-    if (autoRemoveBlackBars) {
-        // 【重要】常に「不変の元画像」から検出し、新しいcurrentImageを生成する
-        detectAndRemoveBlackBars(originalImage, originalImage.originalFilename);
-    } else {
-        // 【Safari対策】チェック解除時は、currentImageを完全に元画像へ差し替える
-        currentImage = originalImage;
-        processedImage = null; 
-        detectedCropBounds = null;
-    }
-
-    // 画像の差し替えと描画を同期させる
-    setTimeout(() => {
+    autoRemoveCheckbox.addEventListener('change', (e) => {
+        autoRemoveBlackBars = e.target.checked;
         if (currentImage) {
-            baseImageWidth = currentImage.width;
-            baseImageHeight = currentImage.height;
+            if (autoRemoveBlackBars) {
+                // Apply black bar detection to original image
+                if (originalImage) {
+                    detectAndRemoveBlackBars(originalImage, originalImage.originalFilename);
+                }
+            } else {
+                // Restore original unprocessed image
+                if (originalImage) {
+                    currentImage = originalImage;
+                    currentImage.originalFilename = originalImage.originalFilename;
+                }
+                // Reset zoom and position
+                zoomLevel = 1;
+                imagePanX = 0;
+                imagePanY = 0;
+                detectedCropBounds = null;
+                processedImage = null;
+                updateImageTransform();
+                setupCropSelector(currentImage);
+                cropImage(currentImage);
+            }
         }
-        updateImageTransform();
-        setupCropSelector(currentImage);
-        cropImage(currentImage);
-    }, 150); 
-});
+    });
+
    // Custom aspect ratio
     applyCustomRatioBtn.addEventListener('click', () => {
         const width = parseFloat(customWidthInput.value);
@@ -1406,17 +1402,8 @@ autoRemoveCheckbox.addEventListener('change', (e) => {
     }
 
   function updateImageTransform() {
-    if (!selectorImage || !originalImage) return;
-    
-    // 計算の基準を「現在表示中の画像幅」に固定
-    const currentW = currentImage ? currentImage.width : originalImage.width;
-    
-    // コンテナ（黒い調整エリア）の幅に対して、画像がぴったり収まる倍率を計算
-    const displayScale = containerWidth / currentW;
-    const finalScale = displayScale * zoomLevel;
-
-    // translateの計算にcalcを使用し、中央配置を維持しながら移動と拡大を適用
-    selectorImage.style.transform = `translate(calc(-50% + ${imagePanX}px), calc(-50% + ${imagePanY}px)) scale(${finalScale})`;
+    // scaleを先に評価させないよう、この順序を厳守します
+    selectorImage.style.transform = `translate(${imagePanX}px, ${imagePanY}px) scale(${zoomLevel})`;
 }
     function startDrag(e) {
         if (isPinching) return;
