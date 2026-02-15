@@ -1199,26 +1199,41 @@ let baseBoxHeight = 0;
             }
         });
     });
+    // --- 1200行目付近：ここから最後まで一気に上書き ---
+
     // 黒帯自動カットの切り替え
     autoRemoveCheckbox.addEventListener('change', (e) => {
         autoRemoveBlackBars = e.target.checked;
         if (!originalImage) return;
 
-        zoomLevel = 1.0;
-        imagePanX = 0;
-        imagePanY = 0;
-
         if (autoRemoveBlackBars) {
-            detectAndRemoveBlackBars(originalImage, originalImage.originalFilename);
+            detectAndRemoveBlackBars(originalImage);
         } else {
             currentImage = originalImage;
-            updateImageTransform();
-            setupCropSelector(currentImage);
-            cropImage(currentImage);
+            refreshPreviewOnly();
         }
     });
 
-    // カスタム比率適用
+    // 「操作エリア」を隠し、プレビューだけを更新する
+    function refreshPreviewOnly() {
+        if (!currentImage) return;
+        
+        // 1. あの邪魔な「四角いエリア」を完全に非表示にする
+        interactiveMode.style.display = 'none';
+        
+        // 2. 結果を表示するセクションだけを出す
+        previewSection.style.display = 'block';
+
+        // 3. 内部で枠の計算だけ行い、プレビュー画像を生成
+        setupCropSelector(currentImage);
+        
+        // Safariの描画待ちを考慮して実行
+        setTimeout(() => {
+            cropImage(currentImage);
+        }, 100);
+    }
+
+    // カスタム比率適用時もプレビューのみ更新
     applyCustomRatioBtn.addEventListener('click', () => {
         const width = parseFloat(customWidthInput.value);
         const height = parseFloat(customHeightInput.value);
@@ -1230,52 +1245,12 @@ let baseBoxHeight = 0;
         TARGET_RATIO = width / height;
         
         if (currentImage) {
-            setupCropSelector(currentImage);
-            cropImage(currentImage);
+            refreshPreviewOnly();
         }
     });
 
-    // 操作系イベント
-    selectorImage.addEventListener('mousedown', startDrag);
-    selectorImage.addEventListener('touchstart', startDrag, {passive: false});
-    document.addEventListener('mousemove', drag);
-    document.addEventListener('touchmove', drag, {passive: false});
-    document.addEventListener('mouseup', endDrag);
-    document.addEventListener('touchend', endDrag);
-
-    function updateImageTransform() {
-        if (!selectorImage) return;
-        selectorImage.style.transform = `translate(${imagePanX}px, ${imagePanY}px) scale(${zoomLevel})`;
-    }
-
-    function startDrag(e) {
-        if (e.touches && e.touches.length > 1) return;
-        isDragging = true;
-        const touch = e.touches ? e.touches[0] : e;
-        dragStartX = touch.clientX;
-        dragStartY = touch.clientY;
-        imageStartX = imagePanX;
-        imageStartY = imagePanY;
-    }
-
-    function drag(e) {
-        if (!isDragging) return;
-        const touch = e.touches ? e.touches[0] : e;
-        imagePanX = imageStartX + (touch.clientX - dragStartX);
-        imagePanY = imageStartY + (touch.clientY - dragStartY);
-        updateImageTransform();
-        if (e.cancelable) e.preventDefault();
-    }
-
-    function endDrag() { 
-        if (isDragging) { 
-            isDragging = false; 
-            cropImage(currentImage); 
-        } 
-    }
-
-    // 黒帯除去ロジック（iPhoneフリーズ対策で計算を軽量化）
-    function detectAndRemoveBlackBars(img, filename) {
+    // 黒帯除去ロジック（等倍解析で正確に実行）
+    function detectAndRemoveBlackBars(img) {
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
         canvas.width = img.width;
@@ -1289,27 +1264,26 @@ let baseBoxHeight = 0;
         let top = 0;
         let bottom = canvas.height;
 
-        // iPhoneの負荷を下げるためxのステップを10に設定
         for (let y = 0; y < canvas.height * 0.4; y++) {
-            let isBlackRow = true;
+            let isBlack = true;
             for (let x = 0; x < canvas.width; x += 10) {
                 const i = (y * canvas.width + x) * 4;
                 if (data[i] > threshold || data[i+1] > threshold || data[i+2] > threshold) {
-                    isBlackRow = false; break;
+                    isBlack = false; break;
                 }
             }
-            if (!isBlackRow) { top = y; break; }
+            if (!isBlack) { top = y; break; }
         }
 
         for (let y = canvas.height - 1; y > canvas.height * 0.6; y--) {
-            let isBlackRow = true;
+            let isBlack = true;
             for (let x = 0; x < canvas.width; x += 10) {
                 const i = (y * canvas.width + x) * 4;
                 if (data[i] > threshold || data[i+1] > threshold || data[i+2] > threshold) {
-                    isBlackRow = false; break;
+                    isBlack = false; break;
                 }
             }
-            if (!isBlackRow) { bottom = y + 1; break; }
+            if (!isBlack) { bottom = y + 1; break; }
         }
 
         const resultCanvas = document.createElement('canvas');
@@ -1321,14 +1295,12 @@ let baseBoxHeight = 0;
         const newImg = new Image();
         newImg.onload = () => {
             currentImage = newImg;
-            updateImageTransform();
-            setupCropSelector(currentImage);
-            cropImage(currentImage);
+            refreshPreviewOnly();
         };
-        newImg.src = resultCanvas.toDataURL('image/png');
+        newImg.src = resultCanvas.toDataURL('image/jpeg', 0.95);
     }
 
-    // ファイル読み込みとUI表示
+    // 画像選択時の処理
     function handleFile(file) {
         if (!file) return;
         const reader = new FileReader();
@@ -1338,31 +1310,17 @@ let baseBoxHeight = 0;
                 originalImage = img;
                 currentImage = img;
                 
-                // 調整画面を出す
-                previewSection.style.display = 'block';
-                interactiveMode.style.display = 'block';
-
-                // ★ご要望：プレビュー画像を非表示にする
-                const croppedImgDisplay = document.getElementById('cropped-img');
-                if (croppedImgDisplay) {
-                    croppedImgDisplay.style.display = 'none';
-                    // もし「クロップ後」という見出しも消したい場合は以下を追加
-                    const croppedLabel = document.getElementById('cropped-label');
-                    if (croppedLabel) croppedLabel.style.display = 'none';
-                }
-
                 if (autoRemoveBlackBars) {
-                    detectAndRemoveBlackBars(originalImage, file.name);
+                    detectAndRemoveBlackBars(originalImage);
                 } else {
-                    updateImageTransform();
-                    setupCropSelector(currentImage);
-                    cropImage(currentImage);
+                    refreshPreviewOnly();
                 }
             };
             img.src = e.target.result;
         };
         reader.readAsDataURL(file);
     }
+
     // Load image from queue
     function loadImageFromQueue() {
         if (currentImageIndex < imageQueue.length) {
