@@ -1218,30 +1218,29 @@ let baseBoxHeight = 0;
             return;
         }
         
-       // 比率ボタンをクリックした時の処理
-ratioBtns.forEach(btn => {
-    btn.addEventListener('click', () => {
-        // 1. ボタンの見た目を切り替える
+        // Deselect all preset buttons
         ratioBtns.forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-
-        // 2. ボタンに設定された比率を数値で取得
-        const ratio = parseFloat(btn.dataset.ratio);
         
-        // 3. 重要：入力欄（3:1など）をボタンに合わせて書き換える
-        if (ratio === 1) {
-            customWidthInput.value = 1;
-            customHeightInput.value = 1;
-        } else {
-            customWidthInput.value = ratio.toFixed(3);
-            customHeightInput.value = 1;
+        // Set custom ratio
+        TARGET_WIDTH = width;
+        TARGET_HEIGHT = height;
+        TARGET_RATIO = width / height;
+        currentRatio = `${width}:${height}`; 
+        
+        // Update labels
+        croppedLabel.textContent = `クロップ後 (${width} × ${height})`;
+        ratioInfo.textContent = `アスペクト比: ${width}:${height} (Custom)`;
+        
+        // Reset and recalculate
+        if (currentImage) {
+            zoomLevel = 1;
+            imagePanX = 0;
+            imagePanY = 0;
+            setupCropSelector(currentImage);
+            cropImage(currentImage);
         }
-
-        // 4. 最重要：Applyボタンをプログラムで勝手に押す
-        // これで「枠の形」が瞬時に切り替わります
-        applyCustomRatioBtn.click();
     });
-});
+
     // Allow Enter key to apply custom ratio
     customWidthInput.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') applyCustomRatioBtn.click();
@@ -1949,19 +1948,15 @@ ratioBtns.forEach(btn => {
     if (!canvas || !preview) return;
     const ctx = canvas.getContext('2d');
 
-    // --- 【超重要】ここが修正のキモです ---
-    // もし入力が「3」とか「1」なら、高画質（横1920px）に自動変換する
-    let exportWidth = TARGET_WIDTH;
-    if (TARGET_WIDTH < 100) { 
-        exportWidth = 1920; 
-    }
+    // --- ここが修正ポイント！ ---
+    // 入力されたのが「3」などの小さい値でも、実用的なサイズ（横幅1920px基準）に変換する
+    const exportWidth = (TARGET_WIDTH < 100) ? 1920 : TARGET_WIDTH;
     const exportHeight = exportWidth / TARGET_RATIO;
 
-    // キャンバスに「大きなサイズ」をセット
     canvas.width = exportWidth;
     canvas.height = exportHeight;
 
-    // 倍率計算（画面上の青枠から、高画質画像への倍率）
+    // 画面上の青枠（baseBoxWidth）を、実際の出力サイズに変換する倍率
     const outputScale = exportWidth / baseBoxWidth;
 
     const finalDrawW = (baseImageWidth * zoomLevel) * outputScale;
@@ -1970,18 +1965,16 @@ ratioBtns.forEach(btn => {
     const finalDrawX = (exportWidth / 2) - (finalDrawW / 2) + (imagePanX * outputScale);
     const finalDrawY = (exportHeight / 2) - (finalDrawH / 2) + (imagePanY * outputScale);
 
-    // 背景を黒にしてから画像を描画
+    // 描画
     ctx.fillStyle = "#000";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.drawImage(img, finalDrawX, finalDrawY, finalDrawW, finalDrawH);
 
-    // プレビュー表示の更新
+    // プレビュー表示
     preview.src = canvas.toDataURL('image/png');
 
     const label = document.getElementById('croppedLabel');
-    if (label) {
-        label.textContent = `クロップ後 (${Math.round(exportWidth)} × ${Math.round(exportHeight)})`;
-    }
+    if (label) label.textContent = `クロップ後 (${Math.round(exportWidth)} × ${Math.round(exportHeight)})`;
 }
     // --- 修正版セット（ここまで） ---
     resetBtn.addEventListener('click', () => {
