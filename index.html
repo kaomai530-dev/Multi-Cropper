@@ -1218,29 +1218,30 @@ let baseBoxHeight = 0;
             return;
         }
         
-        // Deselect all preset buttons
+       // 比率ボタンをクリックした時の処理
+ratioBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+        // 1. ボタンの見た目を切り替える
         ratioBtns.forEach(b => b.classList.remove('active'));
-        
-        // Set custom ratio
-        TARGET_WIDTH = width;
-        TARGET_HEIGHT = height;
-        TARGET_RATIO = width / height;
-        currentRatio = `${width}:${height}`; 
-        
-        // Update labels
-        croppedLabel.textContent = `クロップ後 (${width} × ${height})`;
-        ratioInfo.textContent = `アスペクト比: ${width}:${height} (Custom)`;
-        
-        // Reset and recalculate
-        if (currentImage) {
-            zoomLevel = 1;
-            imagePanX = 0;
-            imagePanY = 0;
-            setupCropSelector(currentImage);
-            cropImage(currentImage);
-        }
-    });
+        btn.classList.add('active');
 
+        // 2. ボタンに設定された比率を数値で取得
+        const ratio = parseFloat(btn.dataset.ratio);
+        
+        // 3. 重要：入力欄（3:1など）をボタンに合わせて書き換える
+        if (ratio === 1) {
+            customWidthInput.value = 1;
+            customHeightInput.value = 1;
+        } else {
+            customWidthInput.value = ratio.toFixed(3);
+            customHeightInput.value = 1;
+        }
+
+        // 4. 最重要：Applyボタンをプログラムで勝手に押す
+        // これで「枠の形」が瞬時に切り替わります
+        applyCustomRatioBtn.click();
+    });
+});
     // Allow Enter key to apply custom ratio
     customWidthInput.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') applyCustomRatioBtn.click();
