@@ -1137,7 +1137,10 @@ fileInput.addEventListener('change', (e) => {
             imagePanY = 0;
             updateImageTransform();
             setupCropSelector();
-            if (currentImage) cropImage(currentImage);
+            if (currentImage) {
+                cropImage(currentImage);
+                modal.style.display = 'block'; // 次の画面へ進むためのスイッチ
+            }
         };
         img.src = event.target.result;
     };
@@ -1159,7 +1162,7 @@ uploadArea.addEventListener('drop', (e) => {
     }
 });
 
-// --- [2] 比率ボタン（1:1, 2.844:1等）の連動処理 ---
+// --- [2] 比率ボタン（1:1等）の連動処理 ---
 ratioBtns.forEach(btn => {
     btn.addEventListener('click', () => {
         ratioBtns.forEach(b => b.classList.remove('active'));
@@ -1167,35 +1170,31 @@ ratioBtns.forEach(btn => {
 
         const ratio = parseFloat(btn.dataset.ratio);
         
-        if (!isNaN(ratio)) {
-            if (ratio === 1) {
-                customWidthInput.value = "1";
-                customHeightInput.value = "1";
-            } else {
-                // 2.844:1などの小数点比率を正確に反映
-                customWidthInput.value = ratio.toFixed(3);
-                customHeightInput.value = "1";
-            }
-
-            TARGET_WIDTH = parseFloat(customWidthInput.value);
-            TARGET_HEIGHT = parseFloat(customHeightInput.value);
-            TARGET_RATIO = TARGET_WIDTH / TARGET_HEIGHT;
-
-            setupCropSelector(); 
-            if (currentImage) {
-                cropImage(currentImage);
-            }
+        if (ratio === 1) {
+            customWidthInput.value = "1";
+            customHeightInput.value = "1";
+        } else {
+            customWidthInput.value = ratio.toFixed(3);
+            customHeightInput.value = "1";
         }
+
+        TARGET_WIDTH = parseFloat(customWidthInput.value);
+        TARGET_HEIGHT = parseFloat(customHeightInput.value);
+        TARGET_RATIO = TARGET_WIDTH / TARGET_HEIGHT;
+
+        setupCropSelector(); 
+        if (currentImage) cropImage(currentImage);
     });
 });
 
-// 入力欄でEnterキーを押した時の処理（ボタンの外に配置して正常化）
-customWidthInput.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') applyCustomRatioBtn.click();
-});
-customHeightInput.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') applyCustomRatioBtn.click();
-});
+    // Allow Enter key to apply custom ratio
+    customWidthInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') applyCustomRatioBtn.click();
+    });
+    customHeightInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') applyCustomRatioBtn.click();
+    });
+
     // Dragging functionality - now drags the image
     selectorImage.addEventListener('mousedown', startDrag);
     selectorImage.addEventListener('touchstart', startDrag);
