@@ -1425,9 +1425,17 @@ let baseBoxHeight = 0;
         // cropImage will be called on touch/interaction end for better performance
     }
 
-  function updateImageTransform() {
-    // scaleを先に評価させないよう、この順序を厳守します
-    selectorImage.style.transform = `translate(${imagePanX}px, ${imagePanY}px) scale(${zoomLevel})`;
+  // 1300行目付近：この内容にそっくり入れ替えてください
+function updateImageTransform() {
+    if (!selectorImage || !originalImage) return;
+    
+    // 計算の基準を「現在の画像」ではなく、常に「最初の元画像」に固定します
+    // これにより、チェックON/OFFを繰り返しても画像が縮まなくなります
+    const displayScale = containerWidth / originalImage.width;
+    const finalScale = displayScale * zoomLevel;
+
+    // 中央配置を維持しながら、計算した倍率を適用
+    selectorImage.style.transform = `translate(calc(-50% + ${imagePanX}px), calc(-50% + ${imagePanY}px)) scale(${finalScale})`;
 }
     function startDrag(e) {
         if (isPinching) return;
