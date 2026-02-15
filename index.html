@@ -1199,8 +1199,6 @@ let baseBoxHeight = 0;
             }
         });
     });
-    // --- 1200行目付近：ここから最後まで上書き ---
-
     // 黒帯自動カットの切り替え
     autoRemoveCheckbox.addEventListener('change', (e) => {
         autoRemoveBlackBars = e.target.checked;
@@ -1211,12 +1209,12 @@ let baseBoxHeight = 0;
         imagePanY = 0;
 
         if (autoRemoveBlackBars) {
-            detectAndRemoveBlackBars(originalImage);
+            detectAndRemoveBlackBars(originalImage, originalImage.originalFilename);
         } else {
             currentImage = originalImage;
             updateImageTransform();
             setupCropSelector(currentImage);
-            setTimeout(() => cropImage(currentImage), 100);
+            cropImage(currentImage);
         }
     });
 
@@ -1232,21 +1230,18 @@ let baseBoxHeight = 0;
         TARGET_RATIO = width / height;
         
         if (currentImage) {
-            zoomLevel = 1.0;
-            imagePanX = 0;
-            imagePanY = 0;
             setupCropSelector(currentImage);
-            setTimeout(() => cropImage(currentImage), 100);
+            cropImage(currentImage);
         }
     });
 
-    // 操作系（これらは元々のシンプルなイベントに戻しました）
-    selectorImage.addEventListener('touchstart', startDrag, {passive: false});
-    document.addEventListener('touchmove', drag, {passive: false});
-    document.addEventListener('touchend', endDrag);
+    // 操作系イベント
     selectorImage.addEventListener('mousedown', startDrag);
+    selectorImage.addEventListener('touchstart', startDrag, {passive: false});
     document.addEventListener('mousemove', drag);
+    document.addEventListener('touchmove', drag, {passive: false});
     document.addEventListener('mouseup', endDrag);
+    document.addEventListener('touchend', endDrag);
 
     function updateImageTransform() {
         if (!selectorImage) return;
@@ -1272,46 +1267,49 @@ let baseBoxHeight = 0;
         if (e.cancelable) e.preventDefault();
     }
 
-    function endDrag() { if (isDragging) { isDragging = false; cropImage(currentImage); } }
+    function endDrag() { 
+        if (isDragging) { 
+            isDragging = false; 
+            cropImage(currentImage); 
+        } 
+    }
 
-    // 【原点回帰】削りすぎないシンプルな黒帯除去
-    function detectAndRemoveBlackBars(img) {
+    // 黒帯除去ロジック（iPhoneフリーズ対策で計算を軽量化）
+    function detectAndRemoveBlackBars(img, filename) {
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
-        // 前にできていた時の「等倍解析」に戻します
         canvas.width = img.width;
         canvas.height = img.height;
         ctx.drawImage(img, 0, 0);
         
         const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
         const data = imageData.data;
-        const threshold = 15; // 前に安定していた数値
+        const threshold = 15;
         
         let top = 0;
         let bottom = canvas.height;
 
-        // 上からのスキャン（間引きせず、かつてのように確実に）
+        // iPhoneの負荷を下げるためxのステップを10に設定
         for (let y = 0; y < canvas.height * 0.4; y++) {
-            let isBlack = true;
+            let isBlackRow = true;
             for (let x = 0; x < canvas.width; x += 10) {
                 const i = (y * canvas.width + x) * 4;
                 if (data[i] > threshold || data[i+1] > threshold || data[i+2] > threshold) {
-                    isBlack = false; break;
+                    isBlackRow = false; break;
                 }
             }
-            if (!isBlack) { top = y; break; }
+            if (!isBlackRow) { top = y; break; }
         }
 
-        // 下からのスキャン
         for (let y = canvas.height - 1; y > canvas.height * 0.6; y--) {
-            let isBlack = true;
+            let isBlackRow = true;
             for (let x = 0; x < canvas.width; x += 10) {
                 const i = (y * canvas.width + x) * 4;
                 if (data[i] > threshold || data[i+1] > threshold || data[i+2] > threshold) {
-                    isBlack = false; break;
+                    isBlackRow = false; break;
                 }
             }
-            if (!isBlack) { bottom = y + 1; break; }
+            if (!isBlackRow) { bottom = y + 1; break; }
         }
 
         const resultCanvas = document.createElement('canvas');
@@ -1325,12 +1323,12 @@ let baseBoxHeight = 0;
             currentImage = newImg;
             updateImageTransform();
             setupCropSelector(currentImage);
-            // Safariが計算をミスらないよう、一瞬だけ待ってから描画
-            setTimeout(() => cropImage(currentImage), 100);
+            cropImage(currentImage);
         };
-        newImg.src = resultCanvas.toDataURL('image/jpeg', 0.95);
+        newImg.src = resultCanvas.toDataURL('image/png');
     }
 
+    // ファイル読み込みとUI表示
     function handleFile(file) {
         if (!file) return;
         const reader = new FileReader();
@@ -1339,23 +1337,32 @@ let baseBoxHeight = 0;
             img.onload = () => {
                 originalImage = img;
                 currentImage = img;
-                // 調整画面を表示
+                
+                // 調整画面を出す
                 previewSection.style.display = 'block';
                 interactiveMode.style.display = 'block';
-                
+
+                // ★ご要望：プレビュー画像を非表示にする
+                const croppedImgDisplay = document.getElementById('cropped-img');
+                if (croppedImgDisplay) {
+                    croppedImgDisplay.style.display = 'none';
+                    // もし「クロップ後」という見出しも消したい場合は以下を追加
+                    const croppedLabel = document.getElementById('cropped-label');
+                    if (croppedLabel) croppedLabel.style.display = 'none';
+                }
+
                 if (autoRemoveBlackBars) {
-                    detectAndRemoveBlackBars(originalImage);
+                    detectAndRemoveBlackBars(originalImage, file.name);
                 } else {
                     updateImageTransform();
                     setupCropSelector(currentImage);
-                    setTimeout(() => cropImage(currentImage), 100);
+                    cropImage(currentImage);
                 }
             };
             img.src = e.target.result;
         };
         reader.readAsDataURL(file);
     }
-
     // Load image from queue
     function loadImageFromQueue() {
         if (currentImageIndex < imageQueue.length) {
