@@ -1159,27 +1159,25 @@ let baseBoxHeight = 0;
             ratioBtns.forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
             
-            // ボタンから値を取得
+            // ボタンのデータ属性から比率を取得
             const ratioValue = parseFloat(btn.dataset.ratio);
-            const w = parseFloat(btn.dataset.width) || ratioValue;
-            const h = parseFloat(btn.dataset.height) || 1;
-
-            // 重要：カスタム入力欄を更新する
+            
+            // --- ここが重要：入力欄の数値を書き換える ---
             if (ratioValue === 1) {
                 customWidthInput.value = "1";
                 customHeightInput.value = "1";
             } else {
-                // 2.844などの値を正確に反映
                 customWidthInput.value = ratioValue.toFixed(3);
                 customHeightInput.value = "1";
             }
             
+            // 内部変数を更新
             currentRatio = btn.dataset.ratio;
-            TARGET_WIDTH = w;
-            TARGET_HEIGHT = h;
-            TARGET_RATIO = ratioValue;
+            TARGET_WIDTH = parseFloat(customWidthInput.value);
+            TARGET_HEIGHT = parseFloat(customHeightInput.value);
+            TARGET_RATIO = TARGET_WIDTH / TARGET_HEIGHT;
             
-            // Update labels
+            // ラベル表示の更新
             if (typeof croppedLabel !== 'undefined') {
                 croppedLabel.textContent = `クロップ後（${TARGET_WIDTH}×${TARGET_HEIGHT}）`;
             }
@@ -1188,13 +1186,16 @@ let baseBoxHeight = 0;
                 ratioInfo.textContent = `アスペクト比: ${currentRatio}:1 (${ratioName})`;
             }
             
-            // Reset and recalculate
+            // --- フレーム（切り抜き範囲）を再計算して描画 ---
             if (currentImage) {
+                // 比率が変わったので、画像位置を中央にリセット
                 zoomLevel = 1;
                 imagePanX = 0;
                 imagePanY = 0;
-                updateImageTransform(); // 座標リセットを視覚的に反映
-                setupCropSelector(currentImage);
+                updateImageTransform(); 
+
+                // setupCropSelectorに引数を渡さず、最新のTARGET_RATIOを使わせる
+                setupCropSelector(); 
                 cropImage(currentImage);
             }
         });
