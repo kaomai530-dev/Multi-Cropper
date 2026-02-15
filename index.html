@@ -1940,35 +1940,38 @@ let baseBoxHeight = 0;
     if (!canvas || !preview) return;
     const ctx = canvas.getContext('2d');
 
-    // 1. 出力サイズを1920x818で固定
+    // 1. 出力サイズを1920x818で厳格に固定
     const outW = 1920;
     const outH = 818; 
     canvas.width = outW;
     canvas.height = outH;
 
-    const scale = img.naturalWidth / baseImageWidth;
-    const sw = Math.round((baseBoxWidth * scale) / zoomLevel);
-    const sh = Math.round((baseBoxHeight * scale) / zoomLevel);
-    const dx = Math.round((imagePanX * scale) / zoomLevel);
-    const dy = Math.round((imagePanY * scale) / zoomLevel);
-    const sx = Math.round((img.naturalWidth / 2) - (sw / 2) - dx);
-    const sy = Math.round((img.naturalHeight / 2) - (sh / 2) - dy);
+    // 2. Safariの計算誤差を封じるための「絶対比率」計算
+    // baseImageWidthに対する比率ではなく、画像の「本来のサイズ」から直接計算します
+    const nw = img.naturalWidth;
+    const nh = img.naturalHeight;
+    
+    // ズームとパンを反映した「切り出す幅と高さ」
+    const sw = (nw * (baseBoxWidth / baseImageWidth)) / zoomLevel;
+    const sh = (nh * (baseBoxHeight / baseImageHeight)) / zoomLevel;
+    
+    // 切り出し位置の中心計算（Safariの丸め誤差を防ぐため浮動小数点のまま計算）
+    const dx = (imagePanX * (nw / baseImageWidth)) / zoomLevel;
+    const dy = (imagePanY * (nh / baseImageHeight)) / zoomLevel;
+    const sx = (nw / 2) - (sw / 2) - dx;
+    const sy = (nh / 2) - (sh / 2) - dy;
 
-    // 2. 描画
+    // 3. 描画（ここが重要：一旦キャンバスを真っ黒にしてから、比率を固定して描く）
+    ctx.clearRect(0, 0, outW, outH);
     ctx.fillStyle = "#000";
     ctx.fillRect(0, 0, outW, outH);
-    ctx.drawImage(img, sx, sy, sw, sh, 0, 0, outW, outH);
+    
+    // Safariに「このサイズ（1920x818）で描け」と強制します
+    ctx.drawImage(img, sx, sy, sw, sh, 0, 0, 1920, 818);
 
-    // 3. 【解決の核心】imgタグを使わず、canvasそのものをプレビューとして見せる
-    // Safariのimgタグにこびりついた「歪んだ記憶」を完全に無視します
-    preview.style.display = 'none'; // 古いimgタグは非表示に
-    canvas.style.display = 'block'; // 描画したキャンバスそのものを表示
-    canvas.style.width = '100%';
-    canvas.style.maxWidth = '800px';
-    canvas.style.height = 'auto';
-    canvas.style.margin = '10px auto';
-    canvas.style.borderRadius = '8px';
-    canvas.style.border = '2px solid rgba(102, 126, 234, 0.3)';
+    // 4. 表示の歪みを「上書き」で封鎖
+    preview.style.cssText = "width:100% !important; max-width:800px !important; height:auto !important; aspect-ratio: 1920 / 818 !important; object-fit: contain !important; display: block; margin: 10px auto; border-radius: 8px;";
+    preview.src = canvas.toDataURL('image/png');
 
     const label = document.getElementById('croppedLabel');
     if (label) label.textContent = `クロップ後（1920×818）`;
