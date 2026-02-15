@@ -1427,20 +1427,19 @@ let baseBoxHeight = 0;
 
   // 修正後
 function updateImageTransform() {
-    // 必要な要素が揃っているか確認
+    // 1. 必要な画像データがあるか確認
     if (!selectorImage || !originalImage) return;
 
-    // 変数名エラーを防ぐため、その場でコンテナ要素を直接取得します
+    // 2. エラーの原因となっていた変数を避け、IDから直接コンテナを取得
     const container = document.getElementById('selector-container');
     if (!container) return;
 
-    // 【縮小防止の鍵】
-    // 計算の基準（分母）を、加工後の画像ではなく、常に「最初の元画像」の幅に固定します。
-    // これにより、黒帯カットで画像サイズが変わっても、表示倍率が狂わなくなります。
-    const scale = container.clientWidth / originalImage.width;
-    const finalScale = scale * zoomLevel;
+    // 3. 【重要】縮小を止める計算式
+    // originalImage.width を使うことで、チェックON/OFFを繰り返しても倍率を固定します
+    const baseScale = container.clientWidth / originalImage.width;
+    const finalScale = baseScale * zoomLevel;
 
-    // 中央配置を維持しながら、計算した倍率を適用
+    // 4. 表示を適用（余計な e や startDrag などの変数は一切使いません）
     selectorImage.style.transform = `translate(calc(-50% + ${imagePanX}px), calc(-50% + ${imagePanY}px)) scale(${finalScale})`;
 }
     function drag(e) {
