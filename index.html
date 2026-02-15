@@ -1426,21 +1426,19 @@ let baseBoxHeight = 0;
     }
 
   function updateImageTransform() {
-    // 1. 必要な要素があるか確認（currentImageではなくoriginalImageを基準にする）
+    // 必要な要素があるか確認。基準は常に originalImage に固定します。
     if (!selectorImage || !originalImage) return;
 
-    // 2. 表示エリアの幅をその場で取得
     const container = document.getElementById('selector-container');
     if (!container) return;
-    const containerWidth = container.clientWidth;
 
-    // 3. 【ループと縮小を止める決定打】
-    // どんなに黒帯をカットしても、計算の分母を「最初の元画像の幅」に固定します。
-    // これにより、計算結果が一定になり、ループが止まります。
-    const scale = containerWidth / originalImage.width;
+    // 【ループ停止の鍵】
+    // currentImage ではなく originalImage.width を使うことで、
+    // 黒帯カット後に画像サイズが変わっても計算結果を一定に保ち、再計算の連鎖を止めます。
+    const scale = container.clientWidth / originalImage.width;
     const finalScale = scale * zoomLevel;
 
-    // 4. 反映（中央配置を維持）
+    // 中央配置を維持しながら、固定された倍率を適用
     selectorImage.style.transform = `translate(calc(-50% + ${imagePanX}px), calc(-50% + ${imagePanY}px)) scale(${finalScale})`;
 }
     function startDrag(e) {
