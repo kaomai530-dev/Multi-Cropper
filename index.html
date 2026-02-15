@@ -1199,47 +1199,30 @@ let baseBoxHeight = 0;
             }
         });
     });
-    // 黒帯自動カットの切り替え
+    // 1200行目付近：ここから最後まで一気に上書きしてください
     autoRemoveCheckbox.addEventListener('change', (e) => {
         autoRemoveBlackBars = e.target.checked;
         if (!originalImage) return;
-
-        zoomLevel = 1.0;
-        imagePanX = 0;
-        imagePanY = 0;
-
+        zoomLevel = 1.0; imagePanX = 0; imagePanY = 0;
         if (autoRemoveBlackBars) {
-            detectAndRemoveBlackBars(originalImage, originalImage.originalFilename);
+            detectAndRemoveBlackBars(originalImage);
         } else {
             currentImage = originalImage;
             updateImageTransform();
             setupCropSelector(currentImage);
-            cropImage(currentImage);
+            setTimeout(() => cropImage(currentImage), 100);
         }
     });
 
-    // 共通：アスペクト比適用
     applyCustomRatioBtn.addEventListener('click', () => {
         const width = parseFloat(customWidthInput.value);
         const height = parseFloat(customHeightInput.value);
         if (!width || !height || width <= 0 || height <= 0) return;
-        
         ratioBtns.forEach(b => b.classList.remove('active'));
-        TARGET_WIDTH = width;
-        TARGET_HEIGHT = height;
-        TARGET_RATIO = width / height;
-        currentRatio = `${width}:${height}`;
-        
-        croppedLabel.textContent = `クロップ後 (${width} × ${height})`;
-        ratioInfo.textContent = `アスペクト比: ${width}:${height}`;
-        
-        if (currentImage) {
-            setupCropSelector(currentImage);
-            cropImage(currentImage);
-        }
+        TARGET_WIDTH = width; TARGET_HEIGHT = height; TARGET_RATIO = width / height;
+        if (currentImage) { setupCropSelector(currentImage); cropImage(currentImage); }
     });
 
-    // 画像操作のイベント（一括設定）
     selectorImage.addEventListener('mousedown', startDrag);
     selectorImage.addEventListener('touchstart', startDrag, {passive: false});
     document.addEventListener('mousemove', drag);
@@ -1247,25 +1230,17 @@ let baseBoxHeight = 0;
     document.addEventListener('mouseup', endDrag);
     document.addEventListener('touchend', endDrag);
 
-    function setZoom(newZoom) {
-        zoomLevel = Math.max(0.5, Math.min(3, newZoom));
-        zoomLevelDisplay.textContent = Math.round(zoomLevel * 100) + '%';
-        updateImageTransform();
-    }
-
     function updateImageTransform() {
         if (!selectorImage) return;
         selectorImage.style.transform = `translate(${imagePanX}px, ${imagePanY}px) scale(${zoomLevel})`;
     }
 
     function startDrag(e) {
-        if (e.touches && e.touches.length > 1) return; // ピンチ時は無視
+        if (e.touches && e.touches.length > 1) return;
         isDragging = true;
         const touch = e.touches ? e.touches[0] : e;
-        dragStartX = touch.clientX;
-        dragStartY = touch.clientY;
-        imageStartX = imagePanX;
-        imageStartY = imagePanY;
+        dragStartX = touch.clientX; dragStartY = touch.clientY;
+        imageStartX = imagePanX; imageStartY = imagePanY;
     }
 
     function drag(e) {
@@ -1277,44 +1252,34 @@ let baseBoxHeight = 0;
         if (e.cancelable) e.preventDefault();
     }
 
-    function endDrag() { 
-        if (isDragging) { 
-            isDragging = false; 
-            cropImage(currentImage); 
-        } 
-    }
+    function endDrag() { if (isDragging) { isDragging = false; cropImage(currentImage); } }
 
-    // --- ここからがiPhoneフリーズ対策の肝です ---
-
-    function detectAndRemoveBlackBars(img, filename) {
+    function detectAndRemoveBlackBars(img) {
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
-        // iPhoneのメモリ負荷軽減のため、解析は小さなサイズで行う
-        const scale = Math.min(1, 1000 / img.width);
-        canvas.width = img.width * scale;
-        canvas.height = img.height * scale;
+        const scanScale = 0.2; // 負荷軽減
+        canvas.width = img.width * scanScale;
+        canvas.height = img.height * scanScale;
         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-        
         const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
-        const threshold = 20;
+        const threshold = 18;
         let top = 0, bottom = canvas.height;
 
-        // 解析（間隔を広げて高速化）
         for (let y = 0; y < canvas.height * 0.4; y++) {
             let isBlack = true;
-            for (let x = 0; x < canvas.width; x += 30) {
+            for (let x = 0; x < canvas.width; x += 20) {
                 const i = (y * canvas.width + x) * 4;
                 if (data[i] > threshold) { isBlack = false; break; }
             }
-            if (!isBlack) { top = y / scale; break; }
+            if (!isBlack) { top = y / scanScale; break; }
         }
         for (let y = canvas.height - 1; y > canvas.height * 0.6; y--) {
             let isBlack = true;
-            for (let x = 0; x < canvas.width; x += 30) {
+            for (let x = 0; x < canvas.width; x += 20) {
                 const i = (y * canvas.width + x) * 4;
                 if (data[i] > threshold) { isBlack = false; break; }
             }
-            if (!isBlack) { bottom = (y + 1) / scale; break; }
+            if (!isBlack) { bottom = (y + 1) / scanScale; break; }
         }
 
         const resultCanvas = document.createElement('canvas');
@@ -1328,9 +1293,9 @@ let baseBoxHeight = 0;
             currentImage = newImg;
             updateImageTransform();
             setupCropSelector(currentImage);
-            setTimeout(() => cropImage(currentImage), 100);
+            setTimeout(() => cropImage(currentImage), 150);
         };
-        newImg.src = resultCanvas.toDataURL('image/jpeg', 0.8);
+        newImg.src = resultCanvas.toDataURL('image/jpeg', 0.85);
     }
 
     function handleFile(file) {
@@ -1340,20 +1305,15 @@ let baseBoxHeight = 0;
             const img = new Image();
             img.onload = () => {
                 originalImage = img;
-                originalImage.originalFilename = file.name;
                 currentImage = img;
-                
-                // 調整画面を確実に表示
                 previewSection.style.display = 'block';
                 interactiveMode.style.display = 'block';
-                if (typeof updateBatchUI === 'function') updateBatchUI();
-
                 if (autoRemoveBlackBars) {
-                    detectAndRemoveBlackBars(originalImage, file.name);
+                    detectAndRemoveBlackBars(originalImage);
                 } else {
                     updateImageTransform();
                     setupCropSelector(currentImage);
-                    cropImage(currentImage);
+                    setTimeout(() => cropImage(currentImage), 150);
                 }
             };
             img.src = e.target.result;
