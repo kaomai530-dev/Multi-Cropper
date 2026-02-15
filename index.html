@@ -1948,32 +1948,48 @@ let baseBoxHeight = 0;
     if (!canvas || !preview) return;
     const ctx = canvas.getContext('2d');
 
-    // 1. 出力サイズをユーザー指定の数値に設定
+    // 1. 出力キャンバスを「入力された数値」に合わせる
     canvas.width = TARGET_WIDTH;
     canvas.height = TARGET_HEIGHT;
 
-    // 2. 【ここが重要】倍率を正しく計算し直す
-    // 画面上の青い枠（baseBoxWidth）を、実際の出力サイズ（TARGET_WIDTH）に変換する倍率
+    // 2. 「見たまま」を指定サイズに投影する計算
     const outputScale = TARGET_WIDTH / baseBoxWidth;
 
-    // 3. 描画位置の計算（ズレを解消）
-    // zoomLevelがかかった状態の「画面上のサイズ」を、出力サイズへスケールアップ
     const finalDrawW = (baseImageWidth * zoomLevel) * outputScale;
     const finalDrawH = (baseImageHeight * zoomLevel) * outputScale;
     
-    // 画像の左上座標（TARGET_WIDTHの中心から、画像サイズとパンの移動量を加味）
-    const finalDrawX = (TARGET_WIDTH / 2) - (finalDrawW / 2) + (imagePanX * outputScale);
-    const finalDrawY = (TARGET_HEIGHT / 2) - (finalDrawH / 2) + (imagePanY * outputScale);
+    const finalDrawX = (TARGET_WIDTH - finalDrawW) / 2 + (imagePanX * outputScale);
+    const finalDrawY = (TARGET_HEIGHT - finalDrawH) / 2 + (imagePanY * outputScale);
 
-    // 4. 描画実行
+    // 3. 描画（背景を黒で塗りつぶしてから画像を描画）
     ctx.fillStyle = "#000";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillRect(0, 0, TARGET_WIDTH, TARGET_HEIGHT);
+    
     ctx.drawImage(img, finalDrawX, finalDrawY, finalDrawW, finalDrawH);
 
-    // 5. プレビュー表示の更新
-    preview.src = canvas.toDataURL('image/png');
+    // 4. プレビュー表示の更新（比率を固定せず可変にする）
+    const previewWidth = Math.min(window.innerWidth * 0.9, 800);
+    // 高さを比率（TARGET_RATIO）に合わせて計算
+    const previewHeight = previewWidth / TARGET_RATIO;
+
+    preview.style.setProperty('width', '100%', 'important');
+    preview.style.setProperty('height', 'auto', 'important');
+    preview.style.setProperty('max-width', previewWidth + 'px', 'important');
     
-    // ラベルの更新
+    // アスペクト比の固定を解除（ここが重要！）
+    preview.style.aspectRatio = `${TARGET_WIDTH} / ${TARGET_HEIGHT}`;
+    
+    preview.style.setProperty('position', 'relative', 'important');
+    preview.style.setProperty('left', '0', 'important');
+    preview.style.setProperty('top', '0', 'important');
+    preview.style.setProperty('margin', '0 auto', 'important');
+    preview.style.setProperty('display', 'block', 'important');
+    
+    preview.parentNode.style.overflow = 'hidden';
+    preview.parentNode.style.display = 'flex';
+    preview.parentNode.style.justifyContent = 'center';
+    preview.src = canvas.toDataURL('image/png');
+
     const label = document.getElementById('croppedLabel');
     if (label) label.textContent = `クロップ後 (${TARGET_WIDTH} × ${TARGET_HEIGHT})`;
 }
