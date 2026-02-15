@@ -1139,9 +1139,12 @@ fileInput.addEventListener('change', (e) => {
             setupCropSelector();
             if (currentImage) {
                 cropImage(currentImage);
-                modal.style.display = 'block'; // 次の画面へ進むためのスイッチ
+                // modalという変数ではなく、IDから直接画面を探して表示させます
+                const targetModal = document.getElementById('modal');
+                if (targetModal) {
+                    targetModal.style.display = 'block';
+                }
             }
-        };
         img.src = event.target.result;
     };
     reader.readAsDataURL(file);
