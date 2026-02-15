@@ -1208,31 +1208,37 @@ let baseBoxHeight = 0;
             detectAndRemoveBlackBars(originalImage);
         } else {
             currentImage = originalImage;
-            refreshPreviewOnly();
+            refreshWithButtons();
         }
     });
 
-    function refreshPreviewOnly() {
+    // ボタン類は残し、画像表示エリアだけを「透明な極小サイズ」にする
+    function refreshWithButtons() {
         if (!currentImage) return;
         
-        // 【重要】display: noneにすると中身が真っ黒になるため、
-        // 面積を0にして「見えないけれど存在させる」方法で消します
-        interactiveMode.style.display = 'block'; 
-        interactiveMode.style.height = '0';
-        interactiveMode.style.overflow = 'hidden';
-        interactiveMode.style.margin = '0';
-        interactiveMode.style.padding = '0';
-        interactiveMode.style.opacity = '0';
-
+        // 【修正】操作エリア全体を消すのではなく、画像が表示される枠（crop-area）だけを実質消去
+        // これにより、中にある画像データはSafariに認識させたまま、見た目だけ消せます
+        const cropArea = interactiveMode.querySelector('.crop-area');
+        if (cropArea) {
+            cropArea.style.height = '0';
+            cropArea.style.margin = '0';
+            cropArea.style.opacity = '0';
+            cropArea.style.overflow = 'hidden';
+            cropArea.style.pointerEvents = 'none'; // 下のボタンを押しやすくする
+        }
+        
+        // ボタン類が含まれるセクション全体は表示し続ける
+        interactiveMode.style.display = 'block';
         previewSection.style.display = 'block';
 
-        // 枠の設定
+        // 内部計算を実行
+        updateImageTransform();
         setupCropSelector(currentImage);
         
-        // Safariがピクセルを認識するのを待ってからクロップ
+        // プレビュー生成
         setTimeout(() => {
             cropImage(currentImage);
-        }, 250);
+        }, 150);
     }
 
     applyCustomRatioBtn.addEventListener('click', () => {
@@ -1241,15 +1247,45 @@ let baseBoxHeight = 0;
         if (!width || !height || width <= 0 || height <= 0) return;
         ratioBtns.forEach(b => b.classList.remove('active'));
         TARGET_WIDTH = width; TARGET_HEIGHT = height; TARGET_RATIO = width / height;
-        if (currentImage) refreshPreviewOnly();
+        if (currentImage) refreshWithButtons();
     });
 
-    // 黒帯除去ロジック
+    // ボタン操作用のイベントは維持（画像が隠れていてもボタンは動くように）
+    selectorImage.addEventListener('touchstart', startDrag, {passive: false});
+    document.addEventListener('touchmove', drag, {passive: false});
+    document.addEventListener('touchend', endDrag);
+    selectorImage.addEventListener('mousedown', startDrag);
+    document.addEventListener('mousemove', drag);
+    document.addEventListener('mouseup', endDrag);
+
+    function updateImageTransform() {
+        if (!selectorImage) return;
+        selectorImage.style.transform = `translate(${imagePanX}px, ${imagePanY}px) scale(${zoomLevel})`;
+    }
+
+    function startDrag(e) {
+        if (e.touches && e.touches.length > 1) return;
+        isDragging = true;
+        const touch = e.touches ? e.touches[0] : e;
+        dragStartX = touch.clientX; dragStartY = touch.clientY;
+        imageStartX = imagePanX; imageStartY = imagePanY;
+    }
+
+    function drag(e) {
+        if (!isDragging) return;
+        const touch = e.touches ? e.touches[0] : e;
+        imagePanX = imageStartX + (touch.clientX - dragStartX);
+        imagePanY = imageStartY + (touch.clientY - dragStartY);
+        updateImageTransform();
+        if (e.cancelable) e.preventDefault();
+    }
+
+    function endDrag() { if (isDragging) { isDragging = false; cropImage(currentImage); } }
+
     function detectAndRemoveBlackBars(img) {
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
-        canvas.width = img.width;
-        canvas.height = img.height;
+        canvas.width = img.width; canvas.height = img.height;
         ctx.drawImage(img, 0, 0);
         const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
         const threshold = 15;
@@ -1273,16 +1309,12 @@ let baseBoxHeight = 0;
         }
 
         const resultCanvas = document.createElement('canvas');
-        resultCanvas.width = img.width;
-        resultCanvas.height = bottom - top;
+        resultCanvas.width = img.width; resultCanvas.height = bottom - top;
         const resultCtx = resultCanvas.getContext('2d');
         resultCtx.drawImage(img, 0, top, img.width, bottom - top, 0, 0, img.width, bottom - top);
 
         const newImg = new Image();
-        newImg.onload = () => {
-            currentImage = newImg;
-            refreshPreviewOnly();
-        };
+        newImg.onload = () => { currentImage = newImg; refreshWithButtons(); };
         newImg.src = resultCanvas.toDataURL('image/jpeg', 0.95);
     }
 
@@ -1292,13 +1324,9 @@ let baseBoxHeight = 0;
         reader.onload = (e) => {
             const img = new Image();
             img.onload = () => {
-                originalImage = img;
-                currentImage = img;
-                if (autoRemoveBlackBars) {
-                    detectAndRemoveBlackBars(originalImage);
-                } else {
-                    refreshPreviewOnly();
-                }
+                originalImage = img; currentImage = img;
+                if (autoRemoveBlackBars) { detectAndRemoveBlackBars(originalImage); }
+                else { refreshWithButtons(); }
             };
             img.src = e.target.result;
         };
