@@ -1425,19 +1425,25 @@ let baseBoxHeight = 0;
         // cropImage will be called on touch/interaction end for better performance
     }
 
-  // 修正後
-// 1. ここを探す
-function updateImageTransform() {
-    // currentImage を originalImage に変えることで、計算の基準を固定します
-    if (!selectorImage || !originalImage) return;
-
-    // 変数名は元のコードのまま維持します
-    const containerWidth = selectorContainer.clientWidth;
-    const scale = containerWidth / originalImage.width; 
-    const finalScale = scale * zoomLevel;
-
-    selectorImage.style.transform = `translate(calc(-50% + ${imagePanX}px), calc(-50% + ${imagePanY}px)) scale(${finalScale})`;
+  function updateImageTransform() {
+    // scaleを先に評価させないよう、この順序を厳守します
+    selectorImage.style.transform = `translate(${imagePanX}px, ${imagePanY}px) scale(${zoomLevel})`;
 }
+    function startDrag(e) {
+        if (isPinching) return;
+        
+        isDragging = true;
+        selectorImage.style.cursor = 'grabbing';
+        
+        const touch = e.touches ? e.touches[0] : e;
+        dragStartX = touch.clientX;
+        dragStartY = touch.clientY;
+        imageStartX = imagePanX;
+        imageStartY = imagePanY;
+        
+        e.preventDefault();
+    }
+
     function drag(e) {
         if (!isDragging || isPinching) return;
         
