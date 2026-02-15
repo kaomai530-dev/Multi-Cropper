@@ -1942,32 +1942,32 @@ let baseBoxHeight = 0;
     if (!canvas || !preview) return;
     const ctx = canvas.getContext('2d');
 
-    // 1. 出力サイズを1920x818で厳格に固定
+    // 1. 出力キャンバスを1920x818に固定
     canvas.width = 1920;
     canvas.height = 818;
 
-    // 2. 「見たまま」を同期させるための新計算
-    // プレビューの基準枠（baseBoxWidth）が1920pxに対して何倍かを計算
+    // 2. 【最重要】「見たまま」を1920pxに投影する計算
+    // 調整画面の枠（baseBoxWidth）が1920pxに対して何倍の比率か
     const outputScale = 1920 / baseBoxWidth;
 
-    // 画面で見えている画像サイズをそのままスケールアップ
-    const finalW = (baseImageWidth * zoomLevel) * outputScale;
-    const finalH = (baseImageHeight * zoomLevel) * outputScale;
+    // 調整画面での画像の表示サイズを、そのまま1920pxの世界にスケールアップ
+    const finalDrawW = (baseImageWidth * zoomLevel) * outputScale;
+    const finalDrawH = (baseImageHeight * zoomLevel) * outputScale;
     
-    // 中央位置からのズレ（imagePan）を1920pxの世界に投影
-    const finalX = (1920 - finalW) / 2 + (imagePanX * outputScale);
-    const finalY = (818 - finalH) / 2 + (imagePanY * outputScale);
+    // 画像の左上角の座標を決定（中央配置 + パンの移動量を1920px換算）
+    const finalDrawX = (1920 - finalDrawW) / 2 + (imagePanX * outputScale);
+    const finalDrawY = (818 - finalDrawH) / 2 + (imagePanY * outputScale);
 
-    // 3. 描画
+    // 3. 描画（背景を黒で塗りつぶしてから画像を描画）
     ctx.fillStyle = "#000";
     ctx.fillRect(0, 0, 1920, 818);
-    // 計算した座標とサイズで描画（これで上の枠と下が一致します）
-    ctx.drawImage(img, finalX, finalY, finalW, finalH);
+    
+    // この一行が、上の調整画面と下のプレビューを完全に同期させます
+    ctx.drawImage(img, finalDrawX, finalDrawY, finalDrawW, finalDrawH);
 
-    // 4. 【解決の核心】Safariが「絶対に」逆らえないように物理的なサイズを直接書き込む
-    // CSSファイルやキャッシュを無視し、このタグの形を 1920:818 に「今ここで」固定します
-    const previewWidth = Math.min(window.innerWidth * 0.9, 800); // 画面幅に合わせたプレビューサイズ
-    const previewHeight = previewWidth * (818 / 1920); // 1920:818を強制
+    // 4. Safari向けのプレビュー表示の強制固定（既存の処理）
+    const previewWidth = Math.min(window.innerWidth * 0.9, 800);
+    const previewHeight = previewWidth * (818 / 1920);
 
     preview.style.setProperty('width', previewWidth + 'px', 'important');
     preview.style.setProperty('height', previewHeight + 'px', 'important');
