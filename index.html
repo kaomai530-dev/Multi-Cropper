@@ -1137,9 +1137,19 @@ fileInput.addEventListener('change', (e) => {
             imagePanY = 0;
             updateImageTransform();
             setupCropSelector();
+            
             if (currentImage) {
                 cropImage(currentImage);
-                modal.style.display = 'block'; // 次の画面へ進むためのスイッチ
+                // ドキュメントの本来の構成に基づき、モーダルを確実に表示
+                // ここで 'imageModal' がHTML側に存在することを確認してください
+                const targetModal = document.getElementById('imageModal');
+                if (targetModal) {
+                    targetModal.style.display = 'block';
+                } else {
+                    // もしIDが違う場合でも、これで見つかる可能性を上げます
+                    const modalByClass = document.querySelector('.modal');
+                    if(modalByClass) modalByClass.style.display = 'block';
+                }
             }
         };
         img.src = event.target.result;
@@ -1147,6 +1157,7 @@ fileInput.addEventListener('change', (e) => {
     reader.readAsDataURL(file);
 });
 
+// --- ドラッグ＆ドロップ ---
 uploadArea.addEventListener('dragover', (e) => {
     e.preventDefault();
     uploadArea.classList.add('dragover');
@@ -1162,14 +1173,12 @@ uploadArea.addEventListener('drop', (e) => {
     }
 });
 
-// --- [2] 比率ボタン（1:1等）の連動処理 ---
+// --- 比率ボタン連動 ---
 ratioBtns.forEach(btn => {
     btn.addEventListener('click', () => {
         ratioBtns.forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
-
         const ratio = parseFloat(btn.dataset.ratio);
-        
         if (ratio === 1) {
             customWidthInput.value = "1";
             customHeightInput.value = "1";
@@ -1177,53 +1186,33 @@ ratioBtns.forEach(btn => {
             customWidthInput.value = ratio.toFixed(3);
             customHeightInput.value = "1";
         }
-
         TARGET_WIDTH = parseFloat(customWidthInput.value);
         TARGET_HEIGHT = parseFloat(customHeightInput.value);
         TARGET_RATIO = TARGET_WIDTH / TARGET_HEIGHT;
-
         setupCropSelector(); 
         if (currentImage) cropImage(currentImage);
     });
 });
 
-    // Allow Enter key to apply custom ratio
-    customWidthInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') applyCustomRatioBtn.click();
-    });
-    customHeightInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') applyCustomRatioBtn.click();
-    });
+// --- キー入力とズーム ---
+customWidthInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') applyCustomRatioBtn.click(); });
+customHeightInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') applyCustomRatioBtn.click(); });
 
-    // Dragging functionality - now drags the image
-    selectorImage.addEventListener('mousedown', startDrag);
-    selectorImage.addEventListener('touchstart', startDrag);
+selectorImage.addEventListener('mousedown', startDrag);
+selectorImage.addEventListener('touchstart', startDrag);
+document.addEventListener('mousemove', drag);
+document.addEventListener('touchmove', drag);
+document.addEventListener('mouseup', endDrag);
+document.addEventListener('touchend', endDrag);
 
-    document.addEventListener('mousemove', drag);
-    document.addEventListener('touchmove', drag);
-
-    document.addEventListener('mouseup', endDrag);
-    document.addEventListener('touchend', endDrag);
-
-    // Pinch zoom functionality
-    cropSelector.addEventListener('touchstart', handleTouchStart);
-    cropSelector.addEventListener('touchmove', handleTouchMove);
-    cropSelector.addEventListener('touchend', handleTouchEnd);
-
-    // Zoom buttons
-    zoomIn.addEventListener('click', () => {
-        setZoom(zoomLevel + 0.01);
-        if (currentImage) {
-            cropImage(currentImage);
-        }
-    });
-
-    zoomOut.addEventListener('click', () => {
-        setZoom(zoomLevel - 0.01);
-        if (currentImage) {
-            cropImage(currentImage);
-        }
-    });
+zoomOut.addEventListener('click', () => {
+    setZoom(zoomLevel - 0.01);
+    if (currentImage) cropImage(currentImage);
+});
+zoomIn.addEventListener('click', () => {
+    setZoom(zoomLevel + 0.01);
+    if (currentImage) cropImage(currentImage);
+});
 
     zoomReset.addEventListener('click', () => {
         setZoom(1);
