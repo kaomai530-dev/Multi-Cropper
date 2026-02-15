@@ -526,8 +526,15 @@
     margin: 10px auto;
     width: 100% !important;
     max-width: 800px !important;
-    aspect-ratio: 1920 / 818 !important; /* 比率を固定 */
-    object-fit: contain !important;      /* 歪ませない */
+    
+    /* 1. Safariに2.35:1(1920:818)の比率を物理的に強制する */
+    aspect-ratio: 1920 / 818 !important;
+    
+    /* 2. Safariが勝手に高さを伸ばすのを禁止 */
+    height: auto !important;
+    
+    /* 3. 画像が歪むのを防ぎ、枠の中に正しく収める */
+    object-fit: contain !important; 
     background-color: #000;
     border: 2px solid rgba(102, 126, 234, 0.3);
     border-radius: 8px;
@@ -1933,14 +1940,16 @@ let baseBoxHeight = 0;
     if (!canvas || !preview) return;
     const ctx = canvas.getContext('2d');
 
-    // 1. 出力サイズを1920x818で厳格に固定
-    canvas.width = 1920;
-    canvas.height = 818;
+    // 出力サイズを1920x818に厳格固定
+    const outW = 1920;
+    const outH = 818;
+    canvas.width = outW;
+    canvas.height = outH;
 
-    // 2. 切り出し計算
     const nw = img.naturalWidth;
     const nh = img.naturalHeight;
     const scale = nw / baseImageWidth;
+    
     const sw = (baseBoxWidth * scale) / zoomLevel;
     const sh = (baseBoxHeight * scale) / zoomLevel;
     const dx = (imagePanX * scale) / zoomLevel;
@@ -1948,24 +1957,21 @@ let baseBoxHeight = 0;
     const sx = (nw / 2) - (sw / 2) - dx;
     const sy = (nh / 2) - (sh / 2) - dy;
 
-    // 3. 描画
+    // 黒塗りで初期化してから描画
     ctx.fillStyle = "#000";
-    ctx.fillRect(0, 0, 1920, 818);
-    ctx.drawImage(img, sx, sy, sw, sh, 0, 0, 1920, 818);
+    ctx.fillRect(0, 0, outW, outH);
+    ctx.drawImage(img, sx, sy, sw, sh, 0, 0, outW, outH);
 
-    // 4. 【解決の核心】Safariが「絶対に」逆らえないように物理的なサイズを直接書き込む
-    // CSSファイルやキャッシュを無視し、このタグの形を 1920:818 に「今ここで」固定します
-    const previewWidth = Math.min(window.innerWidth * 0.9, 800); // 画面幅に合わせたプレビューサイズ
-    const previewHeight = previewWidth * (818 / 1920); // 1920:818を強制
-
-// これだけでOK
+    // Safariのキャッシュと表示バグを破壊するための処理
+    // 1. 一旦ソースを空にする
+    preview.src = "";
+    // 2. インラインスタイルをリセット（CSSのaspect-ratioを優先させるため）
+    preview.removeAttribute('style');
+    // 3. データURLを注入
     preview.src = canvas.toDataURL('image/png');
 
     const label = document.getElementById('croppedLabel');
-    if (label) label.textContent = `クロップ後（1920×818）`;
-}
-    const label = document.getElementById('croppedLabel');
-    if (label) label.textContent = `クロップ後（1920×818）`;
+    if (label) label.textContent = `クロップ後（1,920 × 818）`;
 }
     // --- 修正版セット（ここまで） ---
     resetBtn.addEventListener('click', () => {
