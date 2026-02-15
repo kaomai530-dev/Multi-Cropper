@@ -1204,29 +1204,36 @@ let baseBoxHeight = 0;
         autoRemoveBlackBars = e.target.checked;
         if (currentImage) {
             if (autoRemoveBlackBars) {
-                // Apply black bar detection to original image
+                // 黒帯除去を適用
                 if (originalImage) {
                     detectAndRemoveBlackBars(originalImage, originalImage.originalFilename);
+                    
+                    // 【重要】画像が切り替わった直後に枠を再計算させる
+                    setTimeout(() => {
+                        setupCropSelector(currentImage);
+                        cropImage(currentImage);
+                    }, 50); 
                 }
             } else {
-                // Restore original unprocessed image
+                // 元の未加工画像に戻す
                 if (originalImage) {
                     currentImage = originalImage;
                     currentImage.originalFilename = originalImage.originalFilename;
                 }
-                // Reset zoom and position
+                // ズームと位置を完全にリセット
                 zoomLevel = 1;
                 imagePanX = 0;
                 imagePanY = 0;
                 detectedCropBounds = null;
                 processedImage = null;
+                
                 updateImageTransform();
+                // フレームを元の画像サイズに合わせて再計算
                 setupCropSelector(currentImage);
                 cropImage(currentImage);
             }
         }
     });
-
    // Custom aspect ratio
     applyCustomRatioBtn.addEventListener('click', () => {
         const width = parseFloat(customWidthInput.value);
