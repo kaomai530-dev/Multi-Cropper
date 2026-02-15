@@ -1118,127 +1118,69 @@ let baseBoxHeight = 0;
     const customWidthInput = document.getElementById('customWidth');
     const customHeightInput = document.getElementById('customHeight');
     const applyCustomRatioBtn = document.getElementById('applyCustomRatio');
+// --- [1] 画像選択・ドラッグ&ドロップの処理 ---
+uploadArea.addEventListener('click', () => fileInput.click());
 
-    // Upload area click
-    uploadArea.addEventListener('click', () => fileInput.click());
+fileInput.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
 
-    // File selection
-    fileInput.addEventListener('change', (e) => {
-        if (e.target.files && e.target.files.length > 0) {
-            imageQueue = Array.from(e.target.files);
-            currentImageIndex = 0;
-            processedImages = [];
-            loadImageFromQueue();
-        }
-    });
-
-    // Drag and drop
-    uploadArea.addEventListener('dragover', (e) => {
-        e.preventDefault();
-        uploadArea.classList.add('dragover');
-    });
-
-    uploadArea.addEventListener('dragleave', () => {
-        uploadArea.classList.remove('dragover');
-    });
-
-    uploadArea.addEventListener('drop', (e) => {
-        e.preventDefault();
-        uploadArea.classList.remove('dragover');
-        if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-            imageQueue = Array.from(e.dataTransfer.files);
-            currentImageIndex = 0;
-            processedImages = [];
-            loadImageFromQueue();
-        }
-    });
-
-    // Ratio selection
-    ratioBtns.forEach(btn => {
-        btn.addEventListener('click', () => {
-            ratioBtns.forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            
-            currentRatio = btn.dataset.ratio;
-            TARGET_WIDTH = parseInt(btn.dataset.width);
-            TARGET_HEIGHT = parseInt(btn.dataset.height);
-            TARGET_RATIO = parseFloat(btn.dataset.ratio);
-            
-            // Update labels
-            croppedLabel.textContent = `クロップ後（${TARGET_WIDTH}×${TARGET_HEIGHT}）`;
-            const ratioName = RATIOS[currentRatio].name;
-            ratioInfo.textContent = `アスペクト比: ${currentRatio}:1 (${ratioName})`;
-            
-            // Reset and recalculate
-            if (currentImage) {
-                zoomLevel = 1;
-                imagePanX = 0;
-                imagePanY = 0;
-                setupCropSelector(currentImage);
-                cropImage(currentImage);
-            }
-        });
-    });
-
-    // Auto remove black bars toggle
-    autoRemoveCheckbox.addEventListener('change', (e) => {
-        autoRemoveBlackBars = e.target.checked;
-        if (currentImage) {
-            if (autoRemoveBlackBars) {
-                // Apply black bar detection to original image
-                if (originalImage) {
-                    detectAndRemoveBlackBars(originalImage, originalImage.originalFilename);
-                }
-            } else {
-                // Restore original unprocessed image
-                if (originalImage) {
-                    currentImage = originalImage;
-                    currentImage.originalFilename = originalImage.originalFilename;
-                }
-                // Reset zoom and position
-                zoomLevel = 1;
-                imagePanX = 0;
-                imagePanY = 0;
-                detectedCropBounds = null;
-                processedImage = null;
-                updateImageTransform();
-                setupCropSelector(currentImage);
-                cropImage(currentImage);
-            }
-        }
-    });
-
-   // Custom aspect ratio
-    applyCustomRatioBtn.addEventListener('click', () => {
-        const width = parseFloat(customWidthInput.value);
-        const height = parseFloat(customHeightInput.value);
-        
-        if (!width || !height || width <= 0 || height <= 0) {
-            alert('Please enter valid width and height (positive numbers)');
-            return;
-        }
-        
-        // Deselect all preset buttons
-        ratioBtns.forEach(b => b.classList.remove('active'));
-        
-        // Set custom ratio
-        TARGET_WIDTH = width;
-        TARGET_HEIGHT = height;
-        TARGET_RATIO = width / height;
-        currentRatio = `${width}:${height}`; 
-        
-        // Update labels
-        croppedLabel.textContent = `クロップ後 (${width} × ${height})`;
-        ratioInfo.textContent = `アスペクト比: ${width}:${height} (Custom)`;
-        
-        // Reset and recalculate
-        if (currentImage) {
-            zoomLevel = 1;
+    const reader = new FileReader();
+    reader.onload = function(event) {
+        const img = new Image();
+        img.onload = function() {
+            currentImage = img;
+            baseImageWidth = img.width;
+            baseImageHeight = img.height;
+            zoomLevel = 1.0;
             imagePanX = 0;
             imagePanY = 0;
-            setupCropSelector(currentImage);
-            cropImage(currentImage);
+            updateImageTransform();
+            setupCropSelector();
+            if (currentImage) cropImage(currentImage);
+        };
+        img.src = event.target.result;
+    };
+    reader.readAsDataURL(file);
+});
+
+uploadArea.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    uploadArea.classList.add('dragover');
+});
+uploadArea.addEventListener('dragleave', () => uploadArea.classList.remove('dragover'));
+uploadArea.addEventListener('drop', (e) => {
+    e.preventDefault();
+    uploadArea.classList.remove('dragover');
+    const file = e.dataTransfer.files[0];
+    if (file) {
+        fileInput.files = e.dataTransfer.files;
+        fileInput.dispatchEvent(new Event('change'));
+    }
+});
+
+// --- [2] 比率ボタン（1:1等）の連動処理 ---
+ratioBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+        ratioBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+
+        const ratio = parseFloat(btn.dataset.ratio);
+        
+        if (ratio === 1) {
+            customWidthInput.value = "1";
+            customHeightInput.value = "1";
+        } else {
+            customWidthInput.value = ratio.toFixed(3);
+            customHeightInput.value = "1";
         }
+
+        TARGET_WIDTH = parseFloat(customWidthInput.value);
+        TARGET_HEIGHT = parseFloat(customHeightInput.value);
+        TARGET_RATIO = TARGET_WIDTH / TARGET_HEIGHT;
+
+        setupCropSelector(); 
+        if (currentImage) cropImage(currentImage);
     });
 
     // Allow Enter key to apply custom ratio
@@ -1948,15 +1890,19 @@ let baseBoxHeight = 0;
     if (!canvas || !preview) return;
     const ctx = canvas.getContext('2d');
 
-    // --- ここが修正ポイント！ ---
-    // 入力されたのが「3」などの小さい値でも、実用的なサイズ（横幅1920px基準）に変換する
-    const exportWidth = (TARGET_WIDTH < 100) ? 1920 : TARGET_WIDTH;
+    // --- 【超重要】ここが修正のキモです ---
+    // もし入力が「3」とか「1」なら、高画質（横1920px）に自動変換する
+    let exportWidth = TARGET_WIDTH;
+    if (TARGET_WIDTH < 100) { 
+        exportWidth = 1920; 
+    }
     const exportHeight = exportWidth / TARGET_RATIO;
 
+    // キャンバスに「大きなサイズ」をセット
     canvas.width = exportWidth;
     canvas.height = exportHeight;
 
-    // 画面上の青枠（baseBoxWidth）を、実際の出力サイズに変換する倍率
+    // 倍率計算（画面上の青枠から、高画質画像への倍率）
     const outputScale = exportWidth / baseBoxWidth;
 
     const finalDrawW = (baseImageWidth * zoomLevel) * outputScale;
@@ -1965,16 +1911,18 @@ let baseBoxHeight = 0;
     const finalDrawX = (exportWidth / 2) - (finalDrawW / 2) + (imagePanX * outputScale);
     const finalDrawY = (exportHeight / 2) - (finalDrawH / 2) + (imagePanY * outputScale);
 
-    // 描画
+    // 背景を黒にしてから画像を描画
     ctx.fillStyle = "#000";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.drawImage(img, finalDrawX, finalDrawY, finalDrawW, finalDrawH);
 
-    // プレビュー表示
+    // プレビュー表示の更新
     preview.src = canvas.toDataURL('image/png');
 
     const label = document.getElementById('croppedLabel');
-    if (label) label.textContent = `クロップ後 (${Math.round(exportWidth)} × ${Math.round(exportHeight)})`;
+    if (label) {
+        label.textContent = `クロップ後 (${Math.round(exportWidth)} × ${Math.round(exportHeight)})`;
+    }
 }
     // --- 修正版セット（ここまで） ---
     resetBtn.addEventListener('click', () => {
