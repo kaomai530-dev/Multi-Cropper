@@ -1426,20 +1426,18 @@ let baseBoxHeight = 0;
     }
 
   function updateImageTransform() {
-    // originalImage（最初に読み込んだ画像）がある時だけ動く
-    if (!selectorImage || !originalImage) return;
+    if (!selectorImage || !currentImage) return;
 
     const container = document.getElementById('selector-container');
     if (!container) return;
 
-    // 【ループを止める決定打】
-    // currentImage.width ではなく、何があっても「originalImage.width」を使います。
-    // これにより、黒帯カット後の「Content: 2553x895」ではなく、
-    // 常に「Original: 2556x1179」の幅を基準に表示倍率を固定します。
-    const scale = container.clientWidth / originalImage.width;
-    const finalScale = scale * zoomLevel;
+    // 表示エリアの幅に合わせた基本倍率を計算
+    const baseScale = container.clientWidth / currentImage.width;
+    
+    // ズームレベルを適用
+    const finalScale = baseScale * zoomLevel;
 
-    // 画面に反映
+    // translate(-50%, -50%) を維持しつつ、scale を適用して中央に配置
     selectorImage.style.transform = `translate(calc(-50% + ${imagePanX}px), calc(-50% + ${imagePanY}px)) scale(${finalScale})`;
 }
     function startDrag(e) {
