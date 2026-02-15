@@ -1204,41 +1204,39 @@ let baseBoxHeight = 0;
     autoRemoveCheckbox.addEventListener('change', (e) => {
         autoRemoveBlackBars = e.target.checked;
         if (!originalImage) return;
+        zoomLevel = 1.0; imagePanX = 0; imagePanY = 0;
         if (autoRemoveBlackBars) {
             detectAndRemoveBlackBars(originalImage);
         } else {
             currentImage = originalImage;
-            refreshWithButtons();
+            refreshUI();
         }
     });
 
-    // ボタン類は残し、画像表示エリアだけを「透明な極小サイズ」にする
-    function refreshWithButtons() {
+    function refreshUI() {
         if (!currentImage) return;
         
-        // 【修正】操作エリア全体を消すのではなく、画像が表示される枠（crop-area）だけを実質消去
-        // これにより、中にある画像データはSafariに認識させたまま、見た目だけ消せます
-        const cropArea = interactiveMode.querySelector('.crop-area');
-        if (cropArea) {
-            cropArea.style.height = '0';
-            cropArea.style.margin = '0';
-            cropArea.style.opacity = '0';
-            cropArea.style.overflow = 'hidden';
-            cropArea.style.pointerEvents = 'none'; // 下のボタンを押しやすくする
-        }
-        
-        // ボタン類が含まれるセクション全体は表示し続ける
+        // 画面構成をリセット
         interactiveMode.style.display = 'block';
         previewSection.style.display = 'block';
+        
+        // 【最重要】画像表示エリアをリセットし、ズレを防止
+        const cropArea = interactiveMode.querySelector('.crop-area');
+        if (cropArea) {
+            cropArea.style.height = ''; 
+            cropArea.style.opacity = '1';
+            cropArea.style.visibility = 'visible';
+            cropArea.style.overflow = 'visible'; // 枠がはみ出さないように
+        }
 
-        // 内部計算を実行
         updateImageTransform();
         setupCropSelector(currentImage);
         
-        // プレビュー生成
+        // Safariの計算ズレを直すため、2段階でクロップ実行
         setTimeout(() => {
+            setupCropSelector(currentImage); // 枠を再計算
             cropImage(currentImage);
-        }, 150);
+        }, 200);
     }
 
     applyCustomRatioBtn.addEventListener('click', () => {
@@ -1247,10 +1245,10 @@ let baseBoxHeight = 0;
         if (!width || !height || width <= 0 || height <= 0) return;
         ratioBtns.forEach(b => b.classList.remove('active'));
         TARGET_WIDTH = width; TARGET_HEIGHT = height; TARGET_RATIO = width / height;
-        if (currentImage) refreshWithButtons();
+        if (currentImage) refreshUI();
     });
 
-    // ボタン操作用のイベントは維持（画像が隠れていてもボタンは動くように）
+    // 各種操作ボタン（プラス、マイナス、矢印、リセット）のイベントを確実に維持
     selectorImage.addEventListener('touchstart', startDrag, {passive: false});
     document.addEventListener('touchmove', drag, {passive: false});
     document.addEventListener('touchend', endDrag);
@@ -1314,7 +1312,7 @@ let baseBoxHeight = 0;
         resultCtx.drawImage(img, 0, top, img.width, bottom - top, 0, 0, img.width, bottom - top);
 
         const newImg = new Image();
-        newImg.onload = () => { currentImage = newImg; refreshWithButtons(); };
+        newImg.onload = () => { currentImage = newImg; refreshUI(); };
         newImg.src = resultCanvas.toDataURL('image/jpeg', 0.95);
     }
 
@@ -1326,7 +1324,7 @@ let baseBoxHeight = 0;
             img.onload = () => {
                 originalImage = img; currentImage = img;
                 if (autoRemoveBlackBars) { detectAndRemoveBlackBars(originalImage); }
-                else { refreshWithButtons(); }
+                else { refreshUI(); }
             };
             img.src = e.target.result;
         };
