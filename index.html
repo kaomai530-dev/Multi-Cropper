@@ -1208,34 +1208,18 @@ let baseBoxHeight = 0;
         zoomLevel = 1.0;
         imagePanX = 0;
         imagePanY = 0;
-
-        if (autoRemoveBlackBars) {
-            // 1. 黒帯除去を実行
-            detectAndRemoveBlackBars(originalImage, originalImage.originalFilename);
-            
-            // 2. Safariのために、画像が「完全に準備OK」になるまで繰り返しチェックする
-            let retryCount = 0;
-            const maxRetries = 10;
-            
-            const waitForSafari = setInterval(() => {
-                // currentImageが存在し、かつ幅が正常に取得できているか確認
-                if (currentImage && currentImage.width > 0) {
-                    clearInterval(waitForSafari); // 準備ができたらループ停止
-                    
-                    baseImageWidth = currentImage.width;
-                    baseImageHeight = currentImage.height;
-                    
-                    updateImageTransform();
-                    setupCropSelector(currentImage);
-                    
-                    // Safariの描画タイミングを考慮し、最後に少しだけ遅らせてクロップ実行
-                    setTimeout(() => cropImage(currentImage), 50);
-                }
-                
-                retryCount++;
-                if (retryCount >= maxRetries) clearInterval(waitForSafari); // 念のためのタイムアウト
-            }, 50); // 50ミリ秒ごとに確認
-
+if (autoRemoveBlackBars) {
+        detectAndRemoveBlackBars(originalImage, originalImage.originalFilename);
+        setTimeout(() => {
+            if (currentImage && currentImage.width > 0) {
+                baseImageWidth = currentImage.width;
+                baseImageHeight = currentImage.height;
+                updateImageTransform();
+                setupCropSelector(currentImage);
+                setTimeout(() => cropImage(currentImage), 50);
+            }
+        }, 100); 
+    
         } else {
             // チェック解除時：元画像に戻す
             currentImage = originalImage;
@@ -1426,19 +1410,17 @@ let baseBoxHeight = 0;
     }
 
   function updateImageTransform() {
-    // 必要な要素があるか確認。基準は常に originalImage に固定します。
+    // 基準は常に、最初に読み込んだ不変の「originalImage」にする
     if (!selectorImage || !originalImage) return;
 
     const container = document.getElementById('selector-container');
     if (!container) return;
 
-    // 【ループ停止の鍵】
-    // currentImage ではなく originalImage.width を使うことで、
-    // 黒帯カット後に画像サイズが変わっても計算結果を一定に保ち、再計算の連鎖を止めます。
+    // 計算の分母を originalImage.width に固定。
+    // これで、中身の画像がどれだけクロップされても表示サイズは1ミリも動きません。
     const scale = container.clientWidth / originalImage.width;
     const finalScale = scale * zoomLevel;
 
-    // 中央配置を維持しながら、固定された倍率を適用
     selectorImage.style.transform = `translate(calc(-50% + ${imagePanX}px), calc(-50% + ${imagePanY}px)) scale(${finalScale})`;
 }
     function startDrag(e) {
