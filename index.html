@@ -1139,14 +1139,13 @@ fileInput.addEventListener('change', (e) => {
             setupCropSelector();
             if (currentImage) {
                 cropImage(currentImage);
-                // 変数 modal に頼らず、直接ID 'imageModal' か 'modal' を探して表示させます
-                const target = document.getElementById('imageModal') || document.getElementById('modal');
-                if (target) {
-                    target.style.display = 'block';
-                } else {
-                    console.error("表示する画面(ID:modal)が見つかりません");
+                // ID名を'imageModal'に修正しました
+                const targetModal = document.getElementById('imageModal');
+                if (targetModal) {
+                    targetModal.style.display = 'block';
                 }
             }
+        };
         img.src = event.target.result;
     };
     reader.readAsDataURL(file);
@@ -1192,36 +1191,20 @@ ratioBtns.forEach(btn => {
     });
 });
 
-    // Allow Enter key to apply custom ratio
-    customWidthInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') applyCustomRatioBtn.click();
-    });
-    customHeightInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') applyCustomRatioBtn.click();
-    });
+// --- [3] その他のイベント処理（末尾のカッコ漏れを修正） ---
+customWidthInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') applyCustomRatioBtn.click();
+});
+customHeightInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') applyCustomRatioBtn.click();
+});
 
-    // Dragging functionality - now drags the image
-    selectorImage.addEventListener('mousedown', startDrag);
-    selectorImage.addEventListener('touchstart', startDrag);
-
-    document.addEventListener('mousemove', drag);
-    document.addEventListener('touchmove', drag);
-
-    document.addEventListener('mouseup', endDrag);
-    document.addEventListener('touchend', endDrag);
-
-    // Pinch zoom functionality
-    cropSelector.addEventListener('touchstart', handleTouchStart);
-    cropSelector.addEventListener('touchmove', handleTouchMove);
-    cropSelector.addEventListener('touchend', handleTouchEnd);
-
-    // Zoom buttons
-    zoomIn.addEventListener('click', () => {
-        setZoom(zoomLevel + 0.01);
-        if (currentImage) {
-            cropImage(currentImage);
-        }
-    });
+selectorImage.addEventListener('mousedown', startDrag);
+selectorImage.addEventListener('touchstart', startDrag);
+document.addEventListener('mousemove', drag);
+document.addEventListener('touchmove', drag);
+document.addEventListener('mouseup', endDrag);
+document.addEventListener('touchend', endDrag);
 
     zoomOut.addEventListener('click', () => {
         setZoom(zoomLevel - 0.01);
