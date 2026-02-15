@@ -1478,10 +1478,14 @@ if (autoRemoveBlackBars) {
         customCropX = relativeX;
         customCropY = relativeY;
     }
-
+let isDetecting = false; // ← これを足す
     // Detect and remove black bars - creates a new cropped image
-    function detectAndRemoveBlackBars(img, originalFilename) {
-        const canvas = document.createElement('canvas');
+   function detectAndRemoveBlackBars(img, originalFilename) {
+    if (isDetecting) return; // ← 1. 実行中なら無視する
+    isDetecting = true;      // ← 2. 「実行中」にする
+
+    const canvas = document.createElement('canvas');
+    // ... 中略（ここから下は元のコードのまま） ...
         const ctx = canvas.getContext('2d');
         canvas.width = img.width;
         canvas.height = img.height;
@@ -1615,7 +1619,13 @@ if (autoRemoveBlackBars) {
             cropImage(croppedImg);
         };
         croppedImg.src = croppedCanvas.toDataURL();
-    }
+
+        // ここから追記
+        // 3. 解析が終わったらフラグを下ろす（連打を防止しつつ、次の操作を受け付ける）
+        setTimeout(() => { isDetecting = false; }, 500);
+        // ここまで追記
+
+    } // ← 元からある1622行目の閉じカッコ
 
     // Handle file
     function handleFile(file) {
