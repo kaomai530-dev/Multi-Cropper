@@ -1426,24 +1426,8 @@ let baseBoxHeight = 0;
     }
 
   function updateImageTransform() {
-    if (!selectorImage || !originalImage) return;
-    
-    // 【重要】計算の基準（分母）を決定する
-    // チェックが入っている場合は「カット後の画像」、そうでなければ「元の画像」
-    const activeImg = (autoRemoveBlackBars && currentImage) ? currentImage : originalImage;
-    
-    // 画像がロードされていない（幅が0）場合は処理を中断
-    if (!activeImg.width) return;
-
-    // 画面の幅（containerWidth）に対して、画像がぴったり収まる倍率を計算
-    // これにより、画像自体のサイズがどうあれ、見た目の「100%」が画面幅に固定されます
-    const displayScale = containerWidth / activeImg.width;
-    
-    // ユーザーのズーム操作（zoomLevel）を掛け合わせる
-    const finalScale = displayScale * zoomLevel;
-
-    // 中央に配置しつつ、移動（Pan）と計算した倍率（Scale）を適用
-    selectorImage.style.transform = `translate(calc(-50% + ${imagePanX}px), calc(-50% + ${imagePanY}px)) scale(${finalScale})`;
+    // scaleを先に評価させないよう、この順序を厳守します
+    selectorImage.style.transform = `translate(${imagePanX}px, ${imagePanY}px) scale(${zoomLevel})`;
 }
     function startDrag(e) {
         if (isPinching) return;
