@@ -1427,16 +1427,12 @@ let baseBoxHeight = 0;
 
   function updateImageTransform() {
     if (!selectorImage || !originalImage) return;
-    
-    // エラー対策：コンテナの幅をその場で取得します
-    const currentContainerWidth = selectorContainer.clientWidth;
-    
-    // 【縮小防止の鍵】計算の基準を、常にアップロード時の元画像幅に固定します
-    const displayScale = currentContainerWidth / originalImage.width;
-    const finalScale = displayScale * zoomLevel;
 
-    // 中央配置を維持しながら、移動と倍率を適用
-    // 注意: 元のコードが calc(-50%...) を使っていない場合は、元の形式に合わせます
+    // 元のコードにある変数名「selectorContainer」をそのまま使い、
+    // 分母を「originalImage.width」に固定することで縮小を物理的に防ぎます。
+    const scale = selectorContainer.clientWidth / originalImage.width;
+    const finalScale = scale * zoomLevel;
+
     selectorImage.style.transform = `translate(calc(-50% + ${imagePanX}px), calc(-50% + ${imagePanY}px)) scale(${finalScale})`;
 }
     function startDrag(e) {
