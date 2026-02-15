@@ -1139,7 +1139,7 @@ fileInput.addEventListener('change', (e) => {
             setupCropSelector();
             if (currentImage) {
                 cropImage(currentImage);
-                modal.style.display = 'block';
+                modal.style.display = 'block'; // 次の画面へ進むためのスイッチ
             }
         };
         img.src = event.target.result;
@@ -1185,6 +1185,7 @@ ratioBtns.forEach(btn => {
         setupCropSelector(); 
         if (currentImage) cropImage(currentImage);
     });
+});
 
     // Allow Enter key to apply custom ratio
     customWidthInput.addEventListener('keypress', (e) => {
