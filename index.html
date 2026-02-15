@@ -1208,9 +1208,35 @@ let baseBoxHeight = 0;
         zoomLevel = 1.0;
         imagePanX = 0;
         imagePanY = 0;
-if (autoRemoveBlackBars && !isDetecting) { // ← isDetecting を条件に加える
-    detectAndRemoveBlackBars(originalImage, originalImage.originalFilename);
-        } else if (!autoRemoveBlackBars) {
+
+        if (autoRemoveBlackBars) {
+            // 1. 黒帯除去を実行
+            detectAndRemoveBlackBars(originalImage, originalImage.originalFilename);
+            
+            // 2. Safariのために、画像が「完全に準備OK」になるまで繰り返しチェックする
+            let retryCount = 0;
+            const maxRetries = 10;
+            
+            const waitForSafari = setInterval(() => {
+                // currentImageが存在し、かつ幅が正常に取得できているか確認
+                if (currentImage && currentImage.width > 0) {
+                    clearInterval(waitForSafari); // 準備ができたらループ停止
+                    
+                    baseImageWidth = currentImage.width;
+                    baseImageHeight = currentImage.height;
+                    
+                    updateImageTransform();
+                    setupCropSelector(currentImage);
+                    
+                    // Safariの描画タイミングを考慮し、最後に少しだけ遅らせてクロップ実行
+                    setTimeout(() => cropImage(currentImage), 50);
+                }
+                
+                retryCount++;
+                if (retryCount >= maxRetries) clearInterval(waitForSafari); // 念のためのタイムアウト
+            }, 50); // 50ミリ秒ごとに確認
+
+        } else {
             // チェック解除時：元画像に戻す
             currentImage = originalImage;
             baseImageWidth = originalImage.width;
@@ -1400,18 +1426,8 @@ if (autoRemoveBlackBars && !isDetecting) { // ← isDetecting を条件に加え
     }
 
   function updateImageTransform() {
-    // 基準は常に、最初に読み込んだ不変の「originalImage」にする
-    if (!selectorImage || !originalImage) return;
-
-    const container = document.getElementById('selector-container');
-    if (!container) return;
-
-    // 計算の分母を originalImage.width に固定。
-    // これで、中身の画像がどれだけクロップされても表示サイズは1ミリも動きません。
-    const scale = container.clientWidth / originalImage.width;
-    const finalScale = scale * zoomLevel;
-
-    selectorImage.style.transform = `translate(calc(-50% + ${imagePanX}px), calc(-50% + ${imagePanY}px)) scale(${finalScale})`;
+    // scaleを先に評価させないよう、この順序を厳守します
+    selectorImage.style.transform = `translate(${imagePanX}px, ${imagePanY}px) scale(${zoomLevel})`;
 }
     function startDrag(e) {
         if (isPinching) return;
@@ -1468,14 +1484,10 @@ if (autoRemoveBlackBars && !isDetecting) { // ← isDetecting を条件に加え
         customCropX = relativeX;
         customCropY = relativeY;
     }
-let isDetecting = false; // ← これを足す
-    // Detect and remove black bars - creates a new cropped image
-   function detectAndRemoveBlackBars(img, originalFilename) {
-    if (isDetecting) return; // ← 1. 実行中なら無視する
-    isDetecting = true;      // ← 2. 「実行中」にする
 
-    const canvas = document.createElement('canvas');
-    // ... 中略（ここから下は元のコードのまま） ...
+    // Detect and remove black bars - creates a new cropped image
+    function detectAndRemoveBlackBars(img, originalFilename) {
+        const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
         canvas.width = img.width;
         canvas.height = img.height;
@@ -1609,13 +1621,7 @@ let isDetecting = false; // ← これを足す
             cropImage(croppedImg);
         };
         croppedImg.src = croppedCanvas.toDataURL();
-
-        // ここから追記
-        // 3. 解析が終わったらフラグを下ろす（連打を防止しつつ、次の操作を受け付ける）
-        setTimeout(() => { isDetecting = false; }, 500);
-        // ここまで追記
-
-    } // ← 元からある1622行目の閉じカッコ
+    }
 
     // Handle file
     function handleFile(file) {
