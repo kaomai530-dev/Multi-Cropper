@@ -1137,7 +1137,10 @@ fileInput.addEventListener('change', (e) => {
             imagePanY = 0;
             updateImageTransform();
             setupCropSelector();
-            if (currentImage) cropImage(currentImage);
+            if (currentImage) {
+                cropImage(currentImage);
+                modal.style.display = 'block';
+            }
         };
         img.src = event.target.result;
     };
