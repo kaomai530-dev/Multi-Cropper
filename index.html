@@ -1208,19 +1208,9 @@ let baseBoxHeight = 0;
         zoomLevel = 1.0;
         imagePanX = 0;
         imagePanY = 0;
-if (autoRemoveBlackBars) {
-        detectAndRemoveBlackBars(originalImage, originalImage.originalFilename);
-        setTimeout(() => {
-            if (currentImage && currentImage.width > 0) {
-                baseImageWidth = currentImage.width;
-                baseImageHeight = currentImage.height;
-                updateImageTransform();
-                setupCropSelector(currentImage);
-                setTimeout(() => cropImage(currentImage), 50);
-            }
-        }, 100); 
-    
-        } else {
+if (autoRemoveBlackBars && !isDetecting) { // ← isDetecting を条件に加える
+    detectAndRemoveBlackBars(originalImage, originalImage.originalFilename);
+        } else if (!autoRemoveBlackBars) {
             // チェック解除時：元画像に戻す
             currentImage = originalImage;
             baseImageWidth = originalImage.width;
