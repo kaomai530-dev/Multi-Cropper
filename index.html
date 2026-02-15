@@ -1941,36 +1941,36 @@ let baseBoxHeight = 0;
     const ctx = canvas.getContext('2d');
 
     // 1. 出力サイズを1920x818で厳格に固定
-    const outW = 1920;
-    const outH = 818; 
-    canvas.width = outW;
-    canvas.height = outH;
+    canvas.width = 1920;
+    canvas.height = 818;
 
-    // 2. Safariの計算誤差を封じるための「絶対比率」計算
-    // baseImageWidthに対する比率ではなく、画像の「本来のサイズ」から直接計算します
+    // 2. 切り出し計算
     const nw = img.naturalWidth;
     const nh = img.naturalHeight;
-    
-    // ズームとパンを反映した「切り出す幅と高さ」
-    const sw = (nw * (baseBoxWidth / baseImageWidth)) / zoomLevel;
-    const sh = (nh * (baseBoxHeight / baseImageHeight)) / zoomLevel;
-    
-    // 切り出し位置の中心計算（Safariの丸め誤差を防ぐため浮動小数点のまま計算）
-    const dx = (imagePanX * (nw / baseImageWidth)) / zoomLevel;
-    const dy = (imagePanY * (nh / baseImageHeight)) / zoomLevel;
+    const scale = nw / baseImageWidth;
+    const sw = (baseBoxWidth * scale) / zoomLevel;
+    const sh = (baseBoxHeight * scale) / zoomLevel;
+    const dx = (imagePanX * scale) / zoomLevel;
+    const dy = (imagePanY * scale) / zoomLevel;
     const sx = (nw / 2) - (sw / 2) - dx;
     const sy = (nh / 2) - (sh / 2) - dy;
 
-    // 3. 描画（ここが重要：一旦キャンバスを真っ黒にしてから、比率を固定して描く）
-    ctx.clearRect(0, 0, outW, outH);
+    // 3. 描画
     ctx.fillStyle = "#000";
-    ctx.fillRect(0, 0, outW, outH);
-    
-    // Safariに「このサイズ（1920x818）で描け」と強制します
+    ctx.fillRect(0, 0, 1920, 818);
     ctx.drawImage(img, sx, sy, sw, sh, 0, 0, 1920, 818);
 
-    // 4. 表示の歪みを「上書き」で封鎖
-    preview.style.cssText = "width:100% !important; max-width:800px !important; height:auto !important; aspect-ratio: 1920 / 818 !important; object-fit: contain !important; display: block; margin: 10px auto; border-radius: 8px;";
+    // 4. 【解決の核心】Safariが「絶対に」逆らえないように物理的なサイズを直接書き込む
+    // CSSファイルやキャッシュを無視し、このタグの形を 1920:818 に「今ここで」固定します
+    const previewWidth = Math.min(window.innerWidth * 0.9, 800); // 画面幅に合わせたプレビューサイズ
+    const previewHeight = previewWidth * (818 / 1920); // 1920:818を強制
+
+    preview.style.setProperty('width', previewWidth + 'px', 'important');
+    preview.style.setProperty('height', previewHeight + 'px', 'important');
+    preview.style.setProperty('aspect-ratio', '1920 / 818', 'important');
+    preview.style.setProperty('object-fit', 'fill', 'important'); // containではなくfillで枠に強制密着させる
+    
+    // 画像反映
     preview.src = canvas.toDataURL('image/png');
 
     const label = document.getElementById('croppedLabel');
