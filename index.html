@@ -1946,21 +1946,23 @@ let baseBoxHeight = 0;
     canvas.width = 1920;
     canvas.height = 818;
 
-    // 2. 切り出し計算
-    const nw = img.naturalWidth;
-    const nh = img.naturalHeight;
-    const scale = nw / baseImageWidth;
-    const sw = (baseBoxWidth * scale) / zoomLevel;
-    const sh = (baseBoxHeight * scale) / zoomLevel;
-    const dx = (imagePanX * scale) / zoomLevel;
-    const dy = (imagePanY * scale) / zoomLevel;
-    const sx = (nw / 2) - (sw / 2) - dx;
-    const sy = (nh / 2) - (sh / 2) - dy;
+    // 2. 「見たまま」を同期させるための新計算
+    // プレビューの基準枠（baseBoxWidth）が1920pxに対して何倍かを計算
+    const outputScale = 1920 / baseBoxWidth;
+
+    // 画面で見えている画像サイズをそのままスケールアップ
+    const finalW = (baseImageWidth * zoomLevel) * outputScale;
+    const finalH = (baseImageHeight * zoomLevel) * outputScale;
+    
+    // 中央位置からのズレ（imagePan）を1920pxの世界に投影
+    const finalX = (1920 - finalW) / 2 + (imagePanX * outputScale);
+    const finalY = (818 - finalH) / 2 + (imagePanY * outputScale);
 
     // 3. 描画
     ctx.fillStyle = "#000";
     ctx.fillRect(0, 0, 1920, 818);
-    ctx.drawImage(img, sx, sy, sw, sh, 0, 0, 1920, 818);
+    // 計算した座標とサイズで描画（これで上の枠と下が一致します）
+    ctx.drawImage(img, finalX, finalY, finalW, finalH);
 
     // 4. 【解決の核心】Safariが「絶対に」逆らえないように物理的なサイズを直接書き込む
     // CSSファイルやキャッシュを無視し、このタグの形を 1920:818 に「今ここで」固定します
