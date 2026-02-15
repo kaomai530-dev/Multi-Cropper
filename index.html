@@ -1426,8 +1426,21 @@ let baseBoxHeight = 0;
     }
 
   function updateImageTransform() {
-    // scaleを先に評価させないよう、この順序を厳守します
-    selectorImage.style.transform = `translate(${imagePanX}px, ${imagePanY}px) scale(${zoomLevel})`;
+    // 必要な画像データがあるか確認（originalImage を基準にするのが縮小防止の鍵）
+    if (!selectorImage || !originalImage) return;
+
+    // 変数名エラー（ReferenceError）を避けるため、IDから直接コンテナを取得します
+    const container = document.getElementById('selector-container');
+    if (!container) return;
+
+    // 【最重要：縮小を止める計算式】
+    // 分母を currentImage（加工後）ではなく、originalImage（元画像）に固定。
+    // これにより、チェックON/OFFを繰り返しても表示倍率が1ミリも狂わなくなります。
+    const baseScale = container.clientWidth / originalImage.width;
+    const finalScale = baseScale * zoomLevel;
+
+    // 表示を適用（既存の imagePanX などの変数はそのまま活かします）
+    selectorImage.style.transform = `translate(calc(-50% + ${imagePanX}px), calc(-50% + ${imagePanY}px)) scale(${finalScale})`;
 }
     function startDrag(e) {
         if (isPinching) return;
