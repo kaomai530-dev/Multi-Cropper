@@ -1204,35 +1204,47 @@ let baseBoxHeight = 0;
         autoRemoveBlackBars = e.target.checked;
         if (!originalImage) return;
 
-        // 状態をリセット
+        // 座標とズームをリセット
         zoomLevel = 1.0;
         imagePanX = 0;
         imagePanY = 0;
 
         if (autoRemoveBlackBars) {
-            // 1. 黒帯を除去して currentImage を更新
+            // 1. 黒帯除去を実行
             detectAndRemoveBlackBars(originalImage, originalImage.originalFilename);
             
-            // 2. 画像が生成されるのを少し待ってから、枠（Selector）を再構築
-            setTimeout(() => {
-                if (currentImage) {
-                    // 枠の計算基準（baseImageWidth）をカット後のサイズに更新
+            // 2. Safariのために、画像が「完全に準備OK」になるまで繰り返しチェックする
+            let retryCount = 0;
+            const maxRetries = 10;
+            
+            const waitForSafari = setInterval(() => {
+                // currentImageが存在し、かつ幅が正常に取得できているか確認
+                if (currentImage && currentImage.width > 0) {
+                    clearInterval(waitForSafari); // 準備ができたらループ停止
+                    
                     baseImageWidth = currentImage.width;
                     baseImageHeight = currentImage.height;
                     
-                    // 表示倍率を更新
                     updateImageTransform();
-                    // 【重要】新しい画像サイズを渡して枠を引き直す
                     setupCropSelector(currentImage);
-                    // プレビューも更新
-                    cropImage(currentImage);
+                    
+                    // Safariの描画タイミングを考慮し、最後に少しだけ遅らせてクロップ実行
+                    setTimeout(() => cropImage(currentImage), 50);
                 }
-            }, 100); // 100ミリ秒の待機で計算を安定させる
+                
+                retryCount++;
+                if (retryCount >= maxRetries) clearInterval(waitForSafari); // 念のためのタイムアウト
+            }, 50); // 50ミリ秒ごとに確認
+
         } else {
-            // チェック解除時：元画像(originalImage)にすべて戻す
+            // チェック解除時：元画像に戻す
             currentImage = originalImage;
             baseImageWidth = originalImage.width;
             baseImageHeight = originalImage.height;
+            
+            // Safariで古いキャッシュが残らないよう明示的にリセット
+            processedImage = null;
+            detectedCropBounds = null;
             
             updateImageTransform();
             setupCropSelector(currentImage);
