@@ -1202,26 +1202,26 @@ let baseBoxHeight = 0;
     // Auto remove black bars toggle
     autoRemoveCheckbox.addEventListener('change', (e) => {
         autoRemoveBlackBars = e.target.checked;
+        
         if (currentImage && originalImage) {
             if (autoRemoveBlackBars) {
-                // 【重要】常に「元画像」をベースに検出を行う（縮小ループ防止）
-                // detectAndRemoveBlackBars関数がoriginalImageを元にcurrentImageを更新する前提
+                // 【解決策】常に「加工前の元画像(originalImage)」から黒帯を測定する
+                // これにより、すでにカットされた画像をさらにカットするループを防ぎます
                 detectAndRemoveBlackBars(originalImage, originalImage.originalFilename);
                 
-                // 画像の差し替え後に、座標系をリセットしてズレを防ぐ
                 setTimeout(() => {
-                    // ズームと位置を一旦リセットしないと枠が画面外に飛ぶのを防ぐ
+                    // 画像サイズが変わるため、ズームと位置を一旦リセット
                     zoomLevel = 1;
                     imagePanX = 0;
                     imagePanY = 0;
                     updateImageTransform();
                     
-                    // 新しい画像サイズ（currentImage）に基づいて枠を再構築
+                    // 新しい画像サイズに基づいて枠を再構築
                     setupCropSelector(currentImage);
                     cropImage(currentImage);
                 }, 100); 
             } else {
-                // チェックを外したら、完全に加工前の状態に戻す
+                // チェックを外した時は、完全に元の画像(originalImage)に戻す
                 currentImage = originalImage;
                 
                 zoomLevel = 1;
