@@ -1202,25 +1202,28 @@ let baseBoxHeight = 0;
     // Auto remove black bars toggle
     autoRemoveCheckbox.addEventListener('change', (e) => {
         autoRemoveBlackBars = e.target.checked;
-        if (currentImage) {
+        if (currentImage && originalImage) {
             if (autoRemoveBlackBars) {
-                // 黒帯除去を適用
-                if (originalImage) {
-                    detectAndRemoveBlackBars(originalImage, originalImage.originalFilename);
+                // 【重要】常に「元画像」をベースに検出を行う（縮小ループ防止）
+                // detectAndRemoveBlackBars関数がoriginalImageを元にcurrentImageを更新する前提
+                detectAndRemoveBlackBars(originalImage, originalImage.originalFilename);
+                
+                // 画像の差し替え後に、座標系をリセットしてズレを防ぐ
+                setTimeout(() => {
+                    // ズームと位置を一旦リセットしないと枠が画面外に飛ぶのを防ぐ
+                    zoomLevel = 1;
+                    imagePanX = 0;
+                    imagePanY = 0;
+                    updateImageTransform();
                     
-                    // 【重要】画像が切り替わった直後に枠を再計算させる
-                    setTimeout(() => {
-                        setupCropSelector(currentImage);
-                        cropImage(currentImage);
-                    }, 50); 
-                }
+                    // 新しい画像サイズ（currentImage）に基づいて枠を再構築
+                    setupCropSelector(currentImage);
+                    cropImage(currentImage);
+                }, 100); 
             } else {
-                // 元の未加工画像に戻す
-                if (originalImage) {
-                    currentImage = originalImage;
-                    currentImage.originalFilename = originalImage.originalFilename;
-                }
-                // ズームと位置を完全にリセット
+                // チェックを外したら、完全に加工前の状態に戻す
+                currentImage = originalImage;
+                
                 zoomLevel = 1;
                 imagePanX = 0;
                 imagePanY = 0;
@@ -1228,7 +1231,6 @@ let baseBoxHeight = 0;
                 processedImage = null;
                 
                 updateImageTransform();
-                // フレームを元の画像サイズに合わせて再計算
                 setupCropSelector(currentImage);
                 cropImage(currentImage);
             }
