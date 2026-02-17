@@ -1281,60 +1281,65 @@ applyCustomRatioBtn.onclick = function(e) {
     }
 };
 
-// --- 統合管理：画像選択の再接続 ＆ 1%ズーム ---
-const imageInput = document.getElementById('imageInput');
-const uploadArea = document.getElementById('uploadArea');
+// --- 統合管理（修正版：デザイン崩れ防止＆1%ズーム） ---
+(function() {
+    var targetImgInput = document.getElementById('imageInput') || document.getElementById('fileInput');
+    var targetUploadArea = document.getElementById('uploadArea');
 
-// 画像選択が効かない問題を解消
-if (uploadArea && imageInput) {
-    uploadArea.onclick = () => imageInput.click();
-    imageInput.onchange = (e) => {
-        if (e.target.files.length > 0) handleFile(e.target.files[0]);
-    };
-}
-
-const touchTarget = document.getElementById('cropWrapper') || selectorImage;
-let initialDistance = null;
-
-// マウスホイールを1%単位に（0.1から0.01へ）
-touchTarget.addEventListener('wheel', function(e) {
-    e.preventDefault();
-    const delta = e.deltaY > 0 ? -0.01 : 0.01; 
-    setZoom(zoomLevel + delta);
-}, { passive: false });
-
-// ピンチズーム（1%単位の滑らかな動き）
-touchTarget.addEventListener('touchstart', function(e) {
-    if (e.touches && e.touches.length === 2) {
-        initialDistance = Math.hypot(
-            e.touches[0].pageX - e.touches[1].pageX,
-            e.touches[0].pageY - e.touches[1].pageY
-        );
-    } else {
-        startDrag(e);
+    if (targetUploadArea && targetImgInput) {
+        targetUploadArea.onclick = function() { targetImgInput.click(); };
+        targetImgInput.onchange = function(e) {
+            if (e.target.files.length > 0) handleFile(e.target.files[0]);
+        };
     }
-}, { passive: false });
 
-touchTarget.addEventListener('touchmove', function(e) {
-    if (e.touches && e.touches.length === 2 && initialDistance !== null) {
-        e.preventDefault();
-        const currentDistance = Math.hypot(
-            e.touches[0].pageX - e.touches[1].pageX,
-            e.touches[0].pageY - e.touches[1].pageY
-        );
-        // 感度を 0.002 にして繊細な調整を可能に
-        const delta = (currentDistance - initialDistance) * 0.002; 
-        setZoom(zoomLevel + delta);
-        initialDistance = currentDistance;
-    } else {
-        drag(e);
+    var touchTarget = document.getElementById('cropWrapper') || selectorImage;
+    var initialDistance = null;
+
+    if (touchTarget) {
+        // ホイールを1%単位に
+        touchTarget.addEventListener('wheel', function(e) {
+            e.preventDefault();
+            var delta = e.deltaY > 0 ? -0.01 : 0.01; 
+            setZoom(zoomLevel + delta);
+        }, { passive: false });
+
+        // ピンチズーム（1%単位の滑らかな動き）
+        touchTarget.addEventListener('touchstart', function(e) {
+            if (e.touches && e.touches.length === 2) {
+                initialDistance = Math.hypot(
+                    e.touches[0].pageX - e.touches[1].pageX,
+                    e.touches[0].pageY - e.touches[1].pageY
+                );
+            } else {
+                startDrag(e);
+            }
+        }, { passive: false });
+
+        touchTarget.addEventListener('touchmove', function(e) {
+            if (e.touches && e.touches.length === 2 && initialDistance !== null) {
+                e.preventDefault();
+                var currentDistance = Math.hypot(
+                    e.touches[0].pageX - e.touches[1].pageX,
+                    e.touches[0].pageY - e.touches[1].pageY
+                );
+                var delta = (currentDistance - initialDistance) * 0.002; 
+                setZoom(zoomLevel + delta);
+                initialDistance = currentDistance;
+            } else {
+                drag(e);
+            }
+        }, { passive: false });
+
+        touchTarget.addEventListener('touchend', function() {
+            initialDistance = null;
+            endDrag();
+        });
+
+        touchTarget.onmousedown = startDrag;
     }
-}, { passive: false });
-
-touchTarget.addEventListener('touchend', () => {
-    initialDistance = null;
-    endDrag();
-});
+})();
+// --- ここまでを貼り付け ---
 
 // マウス操作の紐付け
 touchTarget.onmousedown = startDrag;
