@@ -1199,163 +1199,175 @@ let baseBoxHeight = 0;
             }
         });
     });
-    // --- 1200行目付近：ここから最後の一文字（ } ）まで全て上書きしてください ---
+    // --- 1200行目付近：ここから最後まで一気に上書き ---
 
-    // 1. 各種ボタンのイベントリスナー（復活版）
-    if (document.getElementById('zoomIn')) {
-        document.getElementById('zoomIn').onclick = () => { zoomLevel += 0.1; setZoom(zoomLevel); };
-    }
-    if (document.getElementById('zoomOut')) {
-        document.getElementById('zoomOut').onclick = () => { zoomLevel -= 0.1; setZoom(zoomLevel); };
-    }
-    if (document.getElementById('moveUp')) {
-        document.getElementById('moveUp').onclick = () => { imagePanY -= 10; updateImageTransform(); cropImage(currentImage); };
-    }
-    if (document.getElementById('moveDown')) {
-        document.getElementById('moveDown').onclick = () => { imagePanY += 10; updateImageTransform(); cropImage(currentImage); };
-    }
-    if (document.getElementById('moveLeft')) {
-        document.getElementById('moveLeft').onclick = () => { imagePanX -= 10; updateImageTransform(); cropImage(currentImage); };
-    }
-    if (document.getElementById('moveRight')) {
-        document.getElementById('moveRight').onclick = () => { imagePanX += 10; updateImageTransform(); cropImage(currentImage); };
-    }
-    if (document.getElementById('resetBtn') || document.getElementById('resetPosBtn')) {
-        const rBtn = document.getElementById('resetBtn') || document.getElementById('resetPosBtn');
-        rBtn.onclick = () => { zoomLevel = 1.0; imagePanX = 0; imagePanY = 0; updateImageTransform(); cropImage(currentImage); };
-    }
-
-    // 2. 黒帯自動カットの切り替え
     autoRemoveCheckbox.addEventListener('change', (e) => {
-        autoRemoveBlackBars = e.target.checked;
-        if (!originalImage) return;
-        zoomLevel = 1.0; imagePanX = 0; imagePanY = 0;
-        if (autoRemoveBlackBars) {
-            detectAndRemoveBlackBars(originalImage);
-        } else {
-            currentImage = originalImage;
-            refreshUI();
-        }
-    });
+    autoRemoveBlackBars = e.target.checked;
+    if (!originalImage) return;
+    zoomLevel = 1.0; imagePanX = 0; imagePanY = 0;
+    if (autoRemoveBlackBars) {
+        detectAndRemoveBlackBars(originalImage);
+    } else {
+        currentImage = originalImage;
+        refreshUI();
+    }
+});
 
-    // 3. UIの更新とフレーム位置の修正
-    function refreshUI() {
-        if (!currentImage) return;
-        interactiveMode.style.display = 'block';
-        previewSection.style.display = 'block';
-        
-        // フレームが下にズレるのを防ぐため、位置計算をリセット
-        updateImageTransform();
-        
-        // Safariのレンダリングを待ってから2回計算（これで位置が安定します）
-        setupCropSelector(currentImage);
-        setTimeout(() => {
-            setupCropSelector(currentImage); 
-            cropImage(currentImage);
-        }, 200);
+function refreshUI() {
+    if (!currentImage) return;
+    
+    // 画面構成を表示
+    interactiveMode.style.display = 'block';
+    previewSection.style.display = 'block';
+    
+    // 枠の位置ズレを防ぐための初期化
+    const cropArea = interactiveMode.querySelector('.crop-area');
+    if (cropArea) {
+        cropArea.style.display = 'flex';
+        cropArea.style.alignItems = 'center';
+        cropArea.style.justifyContent = 'center';
+        cropArea.style.height = '300px'; // 高さを固定して計算を安定させる
     }
 
-    function setZoom(newZoom) {
-        zoomLevel = Math.max(0.1, Math.min(5, newZoom));
-        if (typeof zoomLevelDisplay !== 'undefined') {
-            zoomLevelDisplay.textContent = Math.round(zoomLevel * 100) + '%';
-        }
-        updateImageTransform();
+    // ボタンの命令を再登録（反応しない問題を解決）
+    attachAllButtonEvents();
+
+    // 枠の位置を確定させる（iPhoneのラグ対策で2回実行）
+    setupCropSelector(currentImage);
+    updateImageTransform();
+    
+    setTimeout(() => {
+        setupCropSelector(currentImage); // 2回目の計算でズレを修正
         cropImage(currentImage);
-    }
+    }, 200);
+}
 
-    applyCustomRatioBtn.addEventListener('click', () => {
-        const width = parseFloat(customWidthInput.value);
-        const height = parseFloat(customHeightInput.value);
-        if (!width || !height || width <= 0 || height <= 0) return;
-        ratioBtns.forEach(b => b.classList.remove('active'));
-        TARGET_WIDTH = width; TARGET_HEIGHT = height; TARGET_RATIO = width / height;
-        if (currentImage) refreshUI();
-    });
+// ボタンの反応を復活させる関数
+function attachAllButtonEvents() {
+    const actions = {
+        'zoomIn': () => { zoomLevel += 0.1; setZoom(zoomLevel); },
+        'zoomOut': () => { zoomLevel -= 0.1; setZoom(zoomLevel); },
+        'moveUp': () => { imagePanY -= 15; updateImageTransform(); cropImage(currentImage); },
+        'moveDown': () => { imagePanY += 15; updateImageTransform(); cropImage(currentImage); },
+        'moveLeft': () => { imagePanX -= 15; updateImageTransform(); cropImage(currentImage); },
+        'moveRight': () => { imagePanX += 15; updateImageTransform(); cropImage(currentImage); },
+        'resetBtn': () => resetAll(),
+        'resetPosBtn': () => resetAll()
+    };
 
-    // 4. ドラッグ操作
-    selectorImage.addEventListener('touchstart', startDrag, {passive: false});
-    document.addEventListener('touchmove', drag, {passive: false});
-    document.addEventListener('touchend', endDrag);
-    selectorImage.addEventListener('mousedown', startDrag);
-    document.addEventListener('mousemove', drag);
-    document.addEventListener('mouseup', endDrag);
-
-    function updateImageTransform() {
-        if (!selectorImage) return;
-        selectorImage.style.transform = `translate(${imagePanX}px, ${imagePanY}px) scale(${zoomLevel})`;
-    }
-
-    function startDrag(e) {
-        if (e.touches && e.touches.length > 1) return;
-        isDragging = true;
-        const touch = e.touches ? e.touches[0] : e;
-        dragStartX = touch.clientX; dragStartY = touch.clientY;
-        imageStartX = imagePanX; imageStartY = imagePanY;
-    }
-
-    function drag(e) {
-        if (!isDragging) return;
-        const touch = e.touches ? e.touches[0] : e;
-        imagePanX = imageStartX + (touch.clientX - dragStartX);
-        imagePanY = imageStartY + (touch.clientY - dragStartY);
-        updateImageTransform();
-        if (e.cancelable) e.preventDefault();
-    }
-
-    function endDrag() { if (isDragging) { isDragging = false; cropImage(currentImage); } }
-
-    // 5. 黒帯除去（正確な解析版）
-    function detectAndRemoveBlackBars(img) {
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        canvas.width = img.width; canvas.height = img.height;
-        ctx.drawImage(img, 0, 0);
-        const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
-        const threshold = 15;
-        let top = 0; let bottom = canvas.height;
-
-        for (let y = 0; y < canvas.height * 0.4; y++) {
-            let isBlack = true;
-            for (let x = 0; x < canvas.width; x += 10) {
-                const i = (y * canvas.width + x) * 4;
-                if (data[i] > threshold || data[i+1] > threshold || data[i+2] > threshold) { isBlack = false; break; }
-            }
-            if (!isBlack) { top = y; break; }
+    for (const [id, action] of Object.entries(actions)) {
+        const el = document.getElementById(id);
+        if (el) {
+            el.onclick = (e) => { e.preventDefault(); action(); };
         }
-        for (let y = canvas.height - 1; y > canvas.height * 0.6; y--) {
-            let isBlack = true;
-            for (let x = 0; x < canvas.width; x += 10) {
-                const i = (y * canvas.width + x) * 4;
-                if (data[i] > threshold || data[i+1] > threshold || data[i+2] > threshold) { isBlack = false; break; }
-            }
-            if (!isBlack) { bottom = y + 1; break; }
+    }
+}
+
+function resetAll() {
+    zoomLevel = 1.0; imagePanX = 0; imagePanY = 0;
+    updateImageTransform();
+    cropImage(currentImage);
+}
+
+function setZoom(val) {
+    zoomLevel = Math.max(0.1, Math.min(5, val));
+    if (document.getElementById('zoomLevelDisplay')) {
+        document.getElementById('zoomLevelDisplay').textContent = Math.round(zoomLevel * 100) + '%';
+    }
+    updateImageTransform();
+    cropImage(currentImage);
+}
+
+applyCustomRatioBtn.addEventListener('click', () => {
+    const width = parseFloat(customWidthInput.value);
+    const height = parseFloat(customHeightInput.value);
+    if (!width || !height || width <= 0 || height <= 0) return;
+    ratioBtns.forEach(b => b.classList.remove('active'));
+    TARGET_WIDTH = width; TARGET_HEIGHT = height; TARGET_RATIO = width / height;
+    if (currentImage) refreshUI();
+});
+
+// ドラッグ操作（スマホ対応）
+selectorImage.addEventListener('touchstart', startDrag, {passive: false});
+document.addEventListener('touchmove', drag, {passive: false});
+document.addEventListener('touchend', endDrag);
+selectorImage.addEventListener('mousedown', startDrag);
+document.addEventListener('mousemove', drag);
+document.addEventListener('mouseup', endDrag);
+
+function updateImageTransform() {
+    if (!selectorImage) return;
+    selectorImage.style.transform = `translate(${imagePanX}px, ${imagePanY}px) scale(${zoomLevel})`;
+}
+
+function startDrag(e) {
+    if (e.touches && e.touches.length > 1) return;
+    isDragging = true;
+    const touch = e.touches ? e.touches[0] : e;
+    dragStartX = touch.clientX; dragStartY = touch.clientY;
+    imageStartX = imagePanX; imageStartY = imagePanY;
+}
+
+function drag(e) {
+    if (!isDragging) return;
+    const touch = e.touches ? e.touches[0] : e;
+    imagePanX = imageStartX + (touch.clientX - dragStartX);
+    imagePanY = imageStartY + (touch.clientY - dragStartY);
+    updateImageTransform();
+    if (e.cancelable) e.preventDefault();
+}
+
+function endDrag() { if (isDragging) { isDragging = false; cropImage(currentImage); } }
+
+function detectAndRemoveBlackBars(img) {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = img.width; canvas.height = img.height;
+    ctx.drawImage(img, 0, 0);
+    const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+    const threshold = 15;
+    let top = 0; let bottom = canvas.height;
+
+    for (let y = 0; y < canvas.height * 0.4; y++) {
+        let isBlack = true;
+        for (let x = 0; x < canvas.width; x += 10) {
+            const i = (y * canvas.width + x) * 4;
+            if (data[i] > threshold || data[i+1] > threshold || data[i+2] > threshold) { isBlack = false; break; }
         }
-
-        const resCanvas = document.createElement('canvas');
-        resCanvas.width = img.width; resCanvas.height = bottom - top;
-        resCanvas.getContext('2d').drawImage(img, 0, top, img.width, bottom - top, 0, 0, img.width, bottom - top);
-
-        const newImg = new Image();
-        newImg.onload = () => { currentImage = newImg; refreshUI(); };
-        newImg.src = resCanvas.toDataURL('image/jpeg', 0.95);
+        if (!isBlack) { top = y; break; }
+    }
+    for (let y = canvas.height - 1; y > canvas.height * 0.6; y--) {
+        let isBlack = true;
+        for (let x = 0; x < canvas.width; x += 10) {
+            const i = (y * canvas.width + x) * 4;
+            if (data[i] > threshold || data[i+1] > threshold || data[i+2] > threshold) { isBlack = false; break; }
+        }
+        if (!isBlack) { bottom = y + 1; break; }
     }
 
-    // 6. ファイル読み込み
-    function handleFile(file) {
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            const img = new Image();
-            img.onload = () => {
-                originalImage = img; currentImage = img;
-                if (autoRemoveBlackBars) { detectAndRemoveBlackBars(originalImage); }
-                else { refreshUI(); }
-            };
-            img.src = e.target.result;
+    const resCanvas = document.createElement('canvas');
+    resCanvas.width = img.width; resCanvas.height = bottom - top;
+    resCanvas.getContext('2d').drawImage(img, 0, top, img.width, bottom - top, 0, 0, img.width, bottom - top);
+
+    const newImg = new Image();
+    newImg.onload = () => { currentImage = newImg; refreshUI(); };
+    newImg.src = resCanvas.toDataURL('image/jpeg', 0.95);
+}
+
+function handleFile(file) {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+            originalImage = img; currentImage = img;
+            if (autoRemoveBlackBars) { detectAndRemoveBlackBars(originalImage); }
+            else { refreshUI(); }
         };
-        reader.readAsDataURL(file);
-    }
+        img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+}
 
     // Load image from queue
     function loadImageFromQueue() {
@@ -1784,3 +1796,4 @@ let baseBoxHeight = 0;
 
 </body>
 </html>
+
