@@ -1249,8 +1249,8 @@ function applyUpdate() {
 // ボタン接続（エラーの原因となる略称 d を廃止）
 function bindButtonsDirectly() {
     var btnMap = [
-        { id: 'zoomIn': function() { setZoom(zoomLevel + 0.01); },
-        { id: 'zoomOut': function() { setZoom(zoomLevel - 0.01); },
+        { id: 'zoomIn', fn: function() { setZoom(zoomLevel + 0.1); } },
+        { id: 'zoomOut', fn: function() { setZoom(zoomLevel - 0.1); } },
         { id: 'moveUp', fn: function() { imagePanY -= 15; applyUpdate(); } },
         { id: 'moveDown', fn: function() { imagePanY += 15; applyUpdate(); } },
         { id: 'moveLeft', fn: function() { imagePanX -= 15; applyUpdate(); } },
@@ -1833,4 +1833,3 @@ bindButtonsDirectly();
 
 </body>
 </html>
-
