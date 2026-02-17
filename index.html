@@ -745,10 +745,10 @@ button,
     <div class="subtitle">Quickly crop screenshots for iPhone/iPad</div>
 
     <div class="upload-area" id="uploadArea">
-    <div class="upload-icon">📱</div>
-    <div class="upload-text">Tap to Select Images</div>
-    <input type="file" id="imageInput" accept="image/*" multiple>
-</div>
+        <div class="upload-icon">📱</div>
+        <div class="upload-text">Tap to Select Images</div>
+        <input type="file" id="fileInput" accept="image/*" multiple>
+    </div>
 
     <div class="preview-section" id="previewSection">
         <div class="aspect-ratio-selector">
@@ -1281,83 +1281,53 @@ applyCustomRatioBtn.onclick = function(e) {
     }
 };
 
-// --- 最終修正：デザイン復旧 ＆ 画像選択接続 ＆ 1%ズーム ---
-(function() {
-    // 1. 画像選択の接続を安全に行う
-    function connectUpload() {
-        var input = document.getElementById('imageInput') || document.getElementById('fileInput');
-        var area = document.getElementById('uploadArea');
-        if (area && input) {
-            area.onclick = function(e) { 
-                if (e.target !== input) input.click(); 
-            };
-            input.onchange = function(e) {
-                if (e.target.files.length > 0) handleFile(e.target.files[0]);
-            };
-        }
-    }
+// マウスホイール・ピンチズーム・ドラッグの統合管理
+let initialDistance = null;
 
-    // 2. ズーム操作（1%単位）の設定
-    function setupZoomControls() {
-        var touchTarget = document.getElementById('cropWrapper') || document.getElementById('selectorImage');
-        if (!touchTarget) return;
+// 操作対象を画像（selectorImage）から外枠（cropWrapper）に変更して反応を改善
+const touchTarget = document.getElementById('cropWrapper') || selectorImage;
 
-        var initialDistance = null;
+touchTarget.addEventListener('wheel', function(e) {
+    e.preventDefault();
+    const delta = e.deltaY > 0 ? -0.1 : 0.1;
+    setZoom(zoomLevel + delta);
+}, { passive: false });
 
-        // ホイール（1%刻み）
-        touchTarget.addEventListener('wheel', function(e) {
-            e.preventDefault();
-            var delta = e.deltaY > 0 ? -0.01 : 0.01; 
-            setZoom(zoomLevel + delta);
-        }, { passive: false });
-
-        // ピンチ（1%刻み）
-        touchTarget.addEventListener('touchstart', function(e) {
-            if (e.touches && e.touches.length === 2) {
-                initialDistance = Math.hypot(
-                    e.touches[0].pageX - e.touches[1].pageX,
-                    e.touches[0].pageY - e.touches[1].pageY
-                );
-            } else {
-                startDrag(e);
-            }
-        }, { passive: false });
-
-        touchTarget.addEventListener('touchmove', function(e) {
-            if (e.touches && e.touches.length === 2 && initialDistance !== null) {
-                e.preventDefault();
-                var currentDistance = Math.hypot(
-                    e.touches[0].pageX - e.touches[1].pageX,
-                    e.touches[0].pageY - e.touches[1].pageY
-                );
-                var delta = (currentDistance - initialDistance) * 0.002; 
-                setZoom(zoomLevel + delta);
-                initialDistance = currentDistance;
-            } else {
-                drag(e);
-            }
-        }, { passive: false });
-
-        touchTarget.addEventListener('touchend', function() {
-            initialDistance = null;
-            endDrag();
-        });
-
-        touchTarget.onmousedown = startDrag;
-    }
-
-    // ページ読み込み完了時、または即座に実行
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', function() {
-            connectUpload();
-            setupZoomControls();
-        });
+touchTarget.addEventListener('touchstart', function(e) {
+    if (e.touches && e.touches.length === 2) {
+        initialDistance = Math.hypot(
+            e.touches[0].pageX - e.touches[1].pageX,
+            e.touches[0].pageY - e.touches[1].pageY
+        );
     } else {
-        connectUpload();
-        setupZoomControls();
+        startDrag(e);
     }
-})();
+}, { passive: false });
 
+touchTarget.addEventListener('touchmove', function(e) {
+    if (e.touches && e.touches.length === 2 && initialDistance !== null) {
+        e.preventDefault();
+        const currentDistance = Math.hypot(
+            e.touches[0].pageX - e.touches[1].pageX,
+            e.touches[0].pageY - e.touches[1].pageY
+        );
+        const delta = (currentDistance - initialDistance) * 0.005; // 感度調整
+        setZoom(zoomLevel + delta);
+        initialDistance = currentDistance;
+    } else {
+        drag(e);
+    }
+}, { passive: false });
+
+touchTarget.addEventListener('touchend', function() {
+    initialDistance = null;
+    endDrag();
+});
+
+// PC用のマウス操作
+touchTarget.onmousedown = startDrag;
+document.addEventListener('mousemove', drag);
+document.addEventListener('mouseup', endDrag);
 
 function updateImageTransform() {
     if (selectorImage) {
