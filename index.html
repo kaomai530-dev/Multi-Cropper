@@ -1281,13 +1281,53 @@ applyCustomRatioBtn.onclick = function(e) {
     }
 };
 
-// 操作系（リンク1準拠）
-selectorImage.addEventListener('touchstart', startDrag, {passive: false});
-document.addEventListener('touchmove', drag, {passive: false});
-document.addEventListener('touchend', endDrag);
-selectorImage.onmousedown = startDrag;
-document.onmousemove = drag;
-document.onmouseup = endDrag;
+// マウスホイール・ピンチズーム・ドラッグの統合管理
+let initialDistance = null;
+
+// 操作対象を画像（selectorImage）から外枠（cropWrapper）に変更して反応を改善
+const touchTarget = document.getElementById('cropWrapper') || selectorImage;
+
+touchTarget.addEventListener('wheel', function(e) {
+    e.preventDefault();
+    const delta = e.deltaY > 0 ? -0.1 : 0.1;
+    setZoom(zoomLevel + delta);
+}, { passive: false });
+
+touchTarget.addEventListener('touchstart', function(e) {
+    if (e.touches && e.touches.length === 2) {
+        initialDistance = Math.hypot(
+            e.touches[0].pageX - e.touches[1].pageX,
+            e.touches[0].pageY - e.touches[1].pageY
+        );
+    } else {
+        startDrag(e);
+    }
+}, { passive: false });
+
+touchTarget.addEventListener('touchmove', function(e) {
+    if (e.touches && e.touches.length === 2 && initialDistance !== null) {
+        e.preventDefault();
+        const currentDistance = Math.hypot(
+            e.touches[0].pageX - e.touches[1].pageX,
+            e.touches[0].pageY - e.touches[1].pageY
+        );
+        const delta = (currentDistance - initialDistance) * 0.005; // 感度調整
+        setZoom(zoomLevel + delta);
+        initialDistance = currentDistance;
+    } else {
+        drag(e);
+    }
+}, { passive: false });
+
+touchTarget.addEventListener('touchend', function() {
+    initialDistance = null;
+    endDrag();
+});
+
+// PC用のマウス操作
+touchTarget.onmousedown = startDrag;
+document.addEventListener('mousemove', drag);
+document.addEventListener('mouseup', endDrag);
 
 function updateImageTransform() {
     if (selectorImage) {
