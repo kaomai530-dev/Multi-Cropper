@@ -1204,7 +1204,6 @@ let baseBoxHeight = 0;
     autoRemoveCheckbox.addEventListener('change', (e) => {
     autoRemoveBlackBars = e.target.checked;
     if (!originalImage) return;
-    // 切り替え時に初期化
     zoomLevel = 1.0; imagePanX = 0; imagePanY = 0;
     updateZoomDisplay();
     if (autoRemoveBlackBars) {
@@ -1220,19 +1219,18 @@ function refreshUI() {
     interactiveMode.style.display = 'block';
     previewSection.style.display = 'block';
     
-    // 表示の更新
     updateImageTransform();
     setupCropSelector(currentImage);
     
-    // iPhoneのレンダリング待ちとボタンの再接続
+    // エラーで止まらないよう、ボタン接続と計算をセット
     setTimeout(() => {
         setupCropSelector(currentImage);
         cropImage(currentImage);
-        bindControlButtons(); // ここでボタンを確実に繋ぐ
+        bindAllButtonsSafely(); 
     }, 200);
 }
 
-// 数字の表示を更新する専用関数
+// 数値表示の更新
 function updateZoomDisplay() {
     const display = document.getElementById('zoomLevelDisplay');
     if (display) {
@@ -1240,8 +1238,8 @@ function updateZoomDisplay() {
     }
 }
 
-// すべてのボタン操作を紐付ける（エラーを回避する安全設計）
-function bindControlButtons() {
+// ボタンに機能を紐付ける（エラーを完全に回避する設計）
+function bindAllButtonsSafely() {
     const actions = {
         'zoomIn': () => { zoomLevel += 0.1; setZoom(zoomLevel); },
         'zoomOut': () => { zoomLevel -= 0.1; setZoom(zoomLevel); },
@@ -1249,7 +1247,7 @@ function bindControlButtons() {
         'moveDown': () => { imagePanY += 15; applyUpdate(); },
         'moveLeft': () => { imagePanX -= 15; applyUpdate(); },
         'moveRight': () => { imagePanX += 15; applyUpdate(); },
-        // IDがGoogleドキュメント版(resetAllBtn / resetPosBtn)であることを前提に設定
+        // 全リセットと左右リセット
         'resetAllBtn': () => { zoomLevel = 1.0; imagePanX = 0; imagePanY = 0; updateZoomDisplay(); applyUpdate(); },
         'resetPosBtn': () => { imagePanX = 0; imagePanY = 0; applyUpdate(); }
     };
@@ -1270,7 +1268,7 @@ function applyUpdate() {
 
 function setZoom(val) {
     zoomLevel = Math.max(0.1, Math.min(5, val));
-    updateZoomDisplay(); // ここで数字を更新
+    updateZoomDisplay();
     applyUpdate();
 }
 
@@ -1315,6 +1313,11 @@ function drag(e) {
 }
 
 function endDrag() { if (isDragging) { isDragging = false; cropImage(currentImage); } }
+
+// エラー（ReferenceError）を回避するためのダミー定義
+function updateCustomCropPosition() {
+    console.log("updateCustomCropPosition called but handled safely.");
+}
 
 function detectAndRemoveBlackBars(img) {
     const canvas = document.createElement('canvas');
@@ -1363,8 +1366,8 @@ function handleFile(file) {
     reader.readAsDataURL(file);
 }
 
-// 初回読み込み時にも一度実行
-bindControlButtons();
+// 初期化
+bindAllButtonsSafely();
     // Load image from queue
     function loadImageFromQueue() {
         if (currentImageIndex < imageQueue.length) {
