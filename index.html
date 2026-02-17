@@ -1204,7 +1204,9 @@ let baseBoxHeight = 0;
     autoRemoveCheckbox.addEventListener('change', (e) => {
     autoRemoveBlackBars = e.target.checked;
     if (!originalImage) return;
+    // 切り替え時に初期化
     zoomLevel = 1.0; imagePanX = 0; imagePanY = 0;
+    updateZoomDisplay();
     if (autoRemoveBlackBars) {
         detectAndRemoveBlackBars(originalImage);
     } else {
@@ -1218,46 +1220,47 @@ function refreshUI() {
     interactiveMode.style.display = 'block';
     previewSection.style.display = 'block';
     
-    // 位置の初期計算
+    // 表示の更新
     updateImageTransform();
     setupCropSelector(currentImage);
     
-    // iPhoneのズレ対策とボタンの紐付け
+    // iPhoneのレンダリング待ちとボタンの再接続
     setTimeout(() => {
         setupCropSelector(currentImage);
         cropImage(currentImage);
-        bindAllButtonsSafely(); // ここでボタンを確実に動かす
+        bindControlButtons(); // ここでボタンを確実に繋ぐ
     }, 200);
 }
 
-// エラー（null）を回避しながらボタンに命令を出す安全な関数
-function bindAllButtonsSafely() {
-    const configs = [
-        { id: 'zoomIn', action: () => { zoomLevel += 0.1; setZoom(zoomLevel); } },
-        { id: 'zoomOut', action: () => { zoomLevel -= 0.1; setZoom(zoomLevel); } },
-        { id: 'moveUp', action: () => { imagePanY -= 15; applyUpdate(); } },
-        { id: 'moveDown', action: () => { imagePanY += 15; applyUpdate(); } },
-        { id: 'moveLeft', action: () => { imagePanX -= 15; applyUpdate(); } },
-        { id: 'moveRight', action: () => { imagePanX += 15; applyUpdate(); } },
-        { id: 'resetAllBtn', action: () => { zoomLevel = 1.0; imagePanX = 0; imagePanY = 0; syncZoomDisplay(); applyUpdate(); } },
-        { id: 'resetPosBtn', action: () => { imagePanX = 0; imagePanY = 0; applyUpdate(); } }
-    ];
-
-    configs.forEach(cfg => {
-        const el = document.getElementById(cfg.id);
-        if (el) {
-            // 前の命令をクリアして二重登録を防ぐ
-            el.onclick = null;
-            el.onclick = (e) => { e.preventDefault(); cfg.action(); };
-            // スマホ（Safari）対策
-            el.ontouchstart = (e) => { e.preventDefault(); cfg.action(); };
-        }
-    });
+// 数字の表示を更新する専用関数
+function updateZoomDisplay() {
+    const display = document.getElementById('zoomLevelDisplay');
+    if (display) {
+        display.textContent = Math.round(zoomLevel * 100) + '%';
+    }
 }
 
-function syncZoomDisplay() {
-    const display = document.getElementById('zoomLevelDisplay');
-    if (display) display.textContent = Math.round(zoomLevel * 100) + '%';
+// すべてのボタン操作を紐付ける（エラーを回避する安全設計）
+function bindControlButtons() {
+    const actions = {
+        'zoomIn': () => { zoomLevel += 0.1; setZoom(zoomLevel); },
+        'zoomOut': () => { zoomLevel -= 0.1; setZoom(zoomLevel); },
+        'moveUp': () => { imagePanY -= 15; applyUpdate(); },
+        'moveDown': () => { imagePanY += 15; applyUpdate(); },
+        'moveLeft': () => { imagePanX -= 15; applyUpdate(); },
+        'moveRight': () => { imagePanX += 15; applyUpdate(); },
+        // IDがGoogleドキュメント版(resetAllBtn / resetPosBtn)であることを前提に設定
+        'resetAllBtn': () => { zoomLevel = 1.0; imagePanX = 0; imagePanY = 0; updateZoomDisplay(); applyUpdate(); },
+        'resetPosBtn': () => { imagePanX = 0; imagePanY = 0; applyUpdate(); }
+    };
+
+    Object.keys(actions).forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.onclick = (e) => { e.preventDefault(); actions[id](); };
+            el.ontouchstart = (e) => { e.preventDefault(); actions[id](); };
+        }
+    });
 }
 
 function applyUpdate() {
@@ -1267,7 +1270,7 @@ function applyUpdate() {
 
 function setZoom(val) {
     zoomLevel = Math.max(0.1, Math.min(5, val));
-    syncZoomDisplay();
+    updateZoomDisplay(); // ここで数字を更新
     applyUpdate();
 }
 
@@ -1281,7 +1284,7 @@ applyCustomRatioBtn.addEventListener('click', (e) => {
     if (currentImage) refreshUI();
 });
 
-// 操作（タッチ・マウス）
+// ドラッグ操作（本体）
 selectorImage.addEventListener('touchstart', startDrag, {passive: false});
 document.addEventListener('touchmove', drag, {passive: false});
 document.addEventListener('touchend', endDrag);
@@ -1359,6 +1362,9 @@ function handleFile(file) {
     };
     reader.readAsDataURL(file);
 }
+
+// 初回読み込み時にも一度実行
+bindControlButtons();
     // Load image from queue
     function loadImageFromQueue() {
         if (currentImageIndex < imageQueue.length) {
