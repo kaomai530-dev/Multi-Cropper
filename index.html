@@ -1227,7 +1227,7 @@ function refreshUI() {
         cropArea.style.height = '300px';
     }
 
-    // すべてのボタン（特にリセット）に命令を「上書き」ではなく「新規登録」
+    // すべてのボタン機能を強制的に紐付け
     attachAllButtonEvents();
 
     setupCropSelector(currentImage);
@@ -1236,50 +1236,57 @@ function refreshUI() {
     setTimeout(() => {
         setupCropSelector(currentImage);
         cropImage(currentImage);
-    }, 200);
+    }, 250);
 }
 
-// ボタンの反応を確実にiPhoneへ伝える関数
+// ボタンをIDと「ボタン内の文字」の両方から探して命令を出す
 function attachAllButtonEvents() {
     const actions = {
-        'zoomIn': () => { setZoom(zoomLevel + 0.1); },
-        'zoomOut': () => { setZoom(zoomLevel - 0.1); },
-        'moveUp': () => { imagePanY -= 15; applyUpdate(); },
-        'moveDown': () => { imagePanY += 15; applyUpdate(); },
-        'moveLeft': () => { imagePanX -= 15; applyUpdate(); },
-        'moveRight': () => { imagePanX += 15; applyUpdate(); },
-        // すべてリセット：ズームを100%にし、位置も中央へ
-        'resetBtn': () => { 
-            imagePanX = 0; 
-            imagePanY = 0; 
-            setZoom(1.0); 
-        },
-        // 位置のみリセット：ズームは維持し、位置だけ中央へ
-        'resetPosBtn': () => { 
-            imagePanX = 0; 
-            imagePanY = 0; 
-            applyUpdate(); 
-        }
+        'zoomIn': () => setZoom(zoomLevel + 0.1),
+        'zoomOut': () => setZoom(zoomLevel - 0.1),
+        'moveUp': () => { imagePanY -= 20; applyUpdate(); },
+        'moveDown': () => { imagePanY += 20; applyUpdate(); },
+        'moveLeft': () => { imagePanX -= 20; applyUpdate(); },
+        'moveRight': () => { imagePanX += 20; applyUpdate(); },
+        // 全リセット：ズーム100% ＋ 位置中央
+        'resetBtn': () => { imagePanX = 0; imagePanY = 0; setZoom(1.0); },
+        // 左右（位置）リセット：ズーム維持 ＋ 位置中央
+        'resetPosBtn': () => { imagePanX = 0; imagePanY = 0; applyUpdate(); }
     };
 
+    // IDで検索して登録
     for (const [id, action] of Object.entries(actions)) {
         const el = document.getElementById(id);
-        if (el) {
-            // 古い命令を一度消して、新しい命令を確実に入れる
-            el.onclick = null;
-            el.ontouchstart = null;
-            
-            // iPhone/PC両対応のイベント登録
-            const handler = (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                action();
-            };
-            
-            el.addEventListener('click', handler, { passive: false });
-            el.addEventListener('touchstart', handler, { passive: false });
-        }
+        bindEvent(el, action);
     }
+
+    // 【バックアップ】IDが効かない場合、ボタンの文字から探す
+    const allButtons = document.querySelectorAll('button');
+    allButtons.forEach(btn => {
+        const txt = btn.textContent;
+        if (txt.includes('全リセット')) bindEvent(btn, actions['resetBtn']);
+        if (txt.includes('位置') || txt.includes('左右')) bindEvent(btn, actions['resetPosBtn']);
+        if (txt.includes('＋') || txt.includes('拡大')) bindEvent(btn, actions['zoomIn']);
+        if (txt.includes('－') || txt.includes('縮小')) bindEvent(btn, actions['zoomOut']);
+    });
+}
+
+// iPhoneで確実に反応させるためのイベント登録
+function bindEvent(el, action) {
+    if (!el) return;
+    // 重複登録を防ぐため一旦クリア
+    el.onclick = null;
+    el.ontouchstart = null;
+    
+    const handler = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        action();
+    };
+    
+    // clickとtouchstartの両方に、他を邪魔させない設定で登録
+    el.addEventListener('click', handler, { passive: false });
+    el.addEventListener('touchstart', handler, { passive: false });
 }
 
 function applyUpdate() {
@@ -1290,9 +1297,7 @@ function applyUpdate() {
 function setZoom(val) {
     zoomLevel = Math.max(0.1, Math.min(5, val));
     const display = document.getElementById('zoomLevelDisplay');
-    if (display) {
-        display.textContent = Math.round(zoomLevel * 100) + '%';
-    }
+    if (display) display.textContent = Math.round(zoomLevel * 100) + '%';
     applyUpdate();
 }
 
@@ -1306,7 +1311,7 @@ applyCustomRatioBtn.addEventListener('click', (e) => {
     if (currentImage) refreshUI();
 });
 
-// ドラッグ操作
+// ドラッグ操作（画像本体の動き）
 selectorImage.addEventListener('touchstart', startDrag, {passive: false});
 document.addEventListener('touchmove', drag, {passive: false});
 document.addEventListener('touchend', endDrag);
@@ -1387,6 +1392,9 @@ function handleFile(file) {
     };
     reader.readAsDataURL(file);
 }
+
+// 最後に念のため、起動直後にもボタンの紐付けを実行
+attachAllButtonEvents();
 
     // Load image from queue
     function loadImageFromQueue() {
