@@ -1203,27 +1203,67 @@ let baseBoxHeight = 0;
 
     // --- 1200行目付近から最後までを上書き ---
 
+    // --- 1200行目付近：ここから最後まで一気に上書き ---
+
     autoRemoveCheckbox.addEventListener('change', (e) => {
         autoRemoveBlackBars = e.target.checked;
         if (!originalImage) return;
-        resetTransform(); // 切り替え時に位置をリセット
         if (autoRemoveBlackBars) {
             detectAndRemoveBlackBars(originalImage);
         } else {
             currentImage = originalImage;
-            refreshUI();
+            resetAllAction(); // 切り替え時にリセット
         }
     });
+
+    // 「すべてリセット」の実行処理
+    function resetAllAction() {
+        zoomLevel = 1.0;
+        imagePanX = 0;
+        imagePanY = 0;
+        const display = document.getElementById('zoomLevelDisplay');
+        if (display) display.textContent = '100%';
+        updateImageTransform();
+        cropImage(currentImage);
+    }
+
+    // 「位置のみリセット」の実行処理
+    function resetPosAction() {
+        imagePanX = 0;
+        imagePanY = 0;
+        updateImageTransform();
+        cropImage(currentImage);
+    }
+
+    // すべてのボタンに命令を叩き込む（ID・文字両対応）
+    function attachAllButtonEvents() {
+        const btns = document.querySelectorAll('button');
+        btns.forEach(btn => {
+            const text = btn.textContent;
+            let action = null;
+
+            if (text.includes('すべてリセット') || btn.id === 'resetAllBtn') action = resetAllAction;
+            else if (text.includes('リセット') || btn.id === 'resetPosBtn') action = resetPosAction;
+            else if (text.includes('＋') || btn.id === 'zoomIn') action = () => { zoomLevel += 0.1; setZoom(zoomLevel); };
+            else if (text.includes('－') || btn.id === 'zoomOut') action = () => { zoomLevel -= 0.1; setZoom(zoomLevel); };
+            else if (btn.id === 'moveUp') action = () => { imagePanY -= 15; applyUpdate(); };
+            else if (btn.id === 'moveDown') action = () => { imagePanY += 15; applyUpdate(); };
+            else if (btn.id === 'moveLeft') action = () => { imagePanX -= 15; applyUpdate(); };
+            else if (btn.id === 'moveRight') action = () => { imagePanX += 15; applyUpdate(); };
+
+            if (action) {
+                btn.onclick = (e) => { e.preventDefault(); action(); };
+                btn.ontouchstart = (e) => { e.preventDefault(); action(); };
+            }
+        });
+    }
 
     function refreshUI() {
         if (!currentImage) return;
         interactiveMode.style.display = 'block';
         previewSection.style.display = 'block';
         
-        // 1. ボタンの命令を再セット
-        attachAllButtonEvents();
-
-        // 2. 位置計算（Safariのズレ対策）
+        attachAllButtonEvents(); // ボタン再起動
         updateImageTransform();
         setupCropSelector(currentImage);
         
@@ -1231,42 +1271,6 @@ let baseBoxHeight = 0;
             setupCropSelector(currentImage);
             cropImage(currentImage);
         }, 200);
-    }
-
-    // GoogleドキュメントのID名に基づきボタン命令を登録
-    function attachAllButtonEvents() {
-        const btnActions = {
-            'zoomIn': () => setZoom(zoomLevel + 0.1),
-            'zoomOut': () => setZoom(zoomLevel - 0.1),
-            'moveUp': () => { imagePanY -= 15; applyUpdate(); },
-            'moveDown': () => { imagePanY += 15; applyUpdate(); },
-            'moveLeft': () => { imagePanX -= 15; applyUpdate(); },
-            'moveRight': () => { imagePanX += 15; applyUpdate(); },
-            // 「すべてリセット」ボタン (ID: resetAllBtn)
-            'resetAllBtn': () => { 
-                zoomLevel = 1.0; 
-                imagePanX = 0; 
-                imagePanY = 0; 
-                if(document.getElementById('zoomLevelDisplay')) {
-                    document.getElementById('zoomLevelDisplay').textContent = '100%';
-                }
-                applyUpdate(); 
-            },
-            // 「左右リセット/位置リセット」ボタン (ID: resetPosBtn)
-            'resetPosBtn': () => { 
-                imagePanX = 0; 
-                imagePanY = 0; 
-                applyUpdate(); 
-            }
-        };
-
-        Object.keys(btnActions).forEach(id => {
-            const el = document.getElementById(id);
-            if (el) {
-                el.onclick = (e) => { e.preventDefault(); btnActions[id](); };
-                el.ontouchstart = (e) => { e.preventDefault(); btnActions[id](); };
-            }
-        });
     }
 
     function applyUpdate() {
@@ -1281,11 +1285,6 @@ let baseBoxHeight = 0;
         applyUpdate();
     }
 
-    function resetTransform() {
-        zoomLevel = 1.0; imagePanX = 0; imagePanY = 0;
-        updateImageTransform();
-    }
-
     applyCustomRatioBtn.addEventListener('click', (e) => {
         e.preventDefault();
         const width = parseFloat(customWidthInput.value);
@@ -1296,7 +1295,6 @@ let baseBoxHeight = 0;
         if (currentImage) refreshUI();
     });
 
-    // ドラッグ操作（本体）
     selectorImage.addEventListener('touchstart', startDrag, {passive: false});
     document.addEventListener('touchmove', drag, {passive: false});
     document.addEventListener('touchend', endDrag);
@@ -1336,7 +1334,6 @@ let baseBoxHeight = 0;
         const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
         const threshold = 15;
         let top = 0, bottom = canvas.height;
-
         for (let y = 0; y < canvas.height * 0.4; y++) {
             let isBlack = true;
             for (let x = 0; x < canvas.width; x += 10) {
@@ -1353,11 +1350,9 @@ let baseBoxHeight = 0;
             }
             if (!isBlack) { bottom = y + 1; break; }
         }
-
         const resCanvas = document.createElement('canvas');
         resCanvas.width = img.width; resCanvas.height = bottom - top;
         resCanvas.getContext('2d').drawImage(img, 0, top, img.width, bottom - top, 0, 0, img.width, bottom - top);
-
         const newImg = new Image();
         newImg.onload = () => { currentImage = newImg; refreshUI(); };
         newImg.src = resCanvas.toDataURL('image/jpeg', 0.95);
@@ -1378,8 +1373,7 @@ let baseBoxHeight = 0;
         reader.readAsDataURL(file);
     }
 
-    // 初期化時にボタンを紐付け
-    attachAllButtonEvents();
+    attachAllButtonEvents(); // 初期化
 
     // Load image from queue
     function loadImageFromQueue() {
