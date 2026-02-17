@@ -1201,7 +1201,8 @@ let baseBoxHeight = 0;
     });
     // --- 1200行目付近：ここから最後まで一気に上書き ---
 
-    autoRemoveCheckbox.addEventListener('change', (e) => {
+    // チェックボックスの連動（ここから上書き）
+autoRemoveCheckbox.addEventListener('change', (e) => {
     autoRemoveBlackBars = e.target.checked;
     if (!originalImage) return;
     zoomLevel = 1.0; imagePanX = 0; imagePanY = 0;
@@ -1222,7 +1223,7 @@ function refreshUI() {
     updateImageTransform();
     setupCropSelector(currentImage);
     
-    // エラーで止まらないよう、ボタン接続と計算をセット
+    // 表示の初期化と同時にボタンを再接続
     setTimeout(() => {
         setupCropSelector(currentImage);
         cropImage(currentImage);
@@ -1230,7 +1231,7 @@ function refreshUI() {
     }, 200);
 }
 
-// 数値表示の更新
+// 拡大率の数字を更新する
 function updateZoomDisplay() {
     const display = document.getElementById('zoomLevelDisplay');
     if (display) {
@@ -1238,7 +1239,7 @@ function updateZoomDisplay() {
     }
 }
 
-// ボタンに機能を紐付ける（エラーを完全に回避する設計）
+// ボタンのIDを安全に紐付ける（リンク2の確実性を採用）
 function bindAllButtonsSafely() {
     const actions = {
         'zoomIn': () => { zoomLevel += 0.1; setZoom(zoomLevel); },
@@ -1247,7 +1248,6 @@ function bindAllButtonsSafely() {
         'moveDown': () => { imagePanY += 15; applyUpdate(); },
         'moveLeft': () => { imagePanX -= 15; applyUpdate(); },
         'moveRight': () => { imagePanX += 15; applyUpdate(); },
-        // 全リセットと左右リセット
         'resetAllBtn': () => { zoomLevel = 1.0; imagePanX = 0; imagePanY = 0; updateZoomDisplay(); applyUpdate(); },
         'resetPosBtn': () => { imagePanX = 0; imagePanY = 0; applyUpdate(); }
     };
@@ -1272,6 +1272,7 @@ function setZoom(val) {
     applyUpdate();
 }
 
+// カスタム比率
 applyCustomRatioBtn.addEventListener('click', (e) => {
     e.preventDefault();
     const width = parseFloat(customWidthInput.value);
@@ -1282,7 +1283,7 @@ applyCustomRatioBtn.addEventListener('click', (e) => {
     if (currentImage) refreshUI();
 });
 
-// ドラッグ操作（本体）
+// 操作系（リンク1のロジックを維持）
 selectorImage.addEventListener('touchstart', startDrag, {passive: false});
 document.addEventListener('touchmove', drag, {passive: false});
 document.addEventListener('touchend', endDrag);
@@ -1314,11 +1315,7 @@ function drag(e) {
 
 function endDrag() { if (isDragging) { isDragging = false; cropImage(currentImage); } }
 
-// エラー（ReferenceError）を回避するためのダミー定義
-function updateCustomCropPosition() {
-    console.log("updateCustomCropPosition called but handled safely.");
-}
-
+// 黒帯除去
 function detectAndRemoveBlackBars(img) {
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
@@ -1365,6 +1362,9 @@ function handleFile(file) {
     };
     reader.readAsDataURL(file);
 }
+
+// 起動時にボタンを接続
+bindAllButtonsSafely();
 
 // 初期化
 bindAllButtonsSafely();
