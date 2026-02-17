@@ -1205,6 +1205,8 @@ let baseBoxHeight = 0;
 
     // --- 1200行目付近：ここから最後まで一気に上書き ---
 
+    // --- 1200行目付近：ここから最後までを入れ替え ---
+
     autoRemoveCheckbox.addEventListener('change', (e) => {
         autoRemoveBlackBars = e.target.checked;
         if (!originalImage) return;
@@ -1212,66 +1214,44 @@ let baseBoxHeight = 0;
             detectAndRemoveBlackBars(originalImage);
         } else {
             currentImage = originalImage;
-            resetAllAction(); // 切り替え時にリセット
+            refreshUI();
         }
     });
-
-    // 「すべてリセット」の実行処理
-    function resetAllAction() {
-        zoomLevel = 1.0;
-        imagePanX = 0;
-        imagePanY = 0;
-        const display = document.getElementById('zoomLevelDisplay');
-        if (display) display.textContent = '100%';
-        updateImageTransform();
-        cropImage(currentImage);
-    }
-
-    // 「位置のみリセット」の実行処理
-    function resetPosAction() {
-        imagePanX = 0;
-        imagePanY = 0;
-        updateImageTransform();
-        cropImage(currentImage);
-    }
-
-    // すべてのボタンに命令を叩き込む（ID・文字両対応）
-    function attachAllButtonEvents() {
-        const btns = document.querySelectorAll('button');
-        btns.forEach(btn => {
-            const text = btn.textContent;
-            let action = null;
-
-            if (text.includes('すべてリセット') || btn.id === 'resetAllBtn') action = resetAllAction;
-            else if (text.includes('リセット') || btn.id === 'resetPosBtn') action = resetPosAction;
-            else if (text.includes('＋') || btn.id === 'zoomIn') action = () => { zoomLevel += 0.1; setZoom(zoomLevel); };
-            else if (text.includes('－') || btn.id === 'zoomOut') action = () => { zoomLevel -= 0.1; setZoom(zoomLevel); };
-            else if (btn.id === 'moveUp') action = () => { imagePanY -= 15; applyUpdate(); };
-            else if (btn.id === 'moveDown') action = () => { imagePanY += 15; applyUpdate(); };
-            else if (btn.id === 'moveLeft') action = () => { imagePanX -= 15; applyUpdate(); };
-            else if (btn.id === 'moveRight') action = () => { imagePanX += 15; applyUpdate(); };
-
-            if (action) {
-                btn.onclick = (e) => { e.preventDefault(); action(); };
-                btn.ontouchstart = (e) => { e.preventDefault(); action(); };
-            }
-        });
-    }
 
     function refreshUI() {
         if (!currentImage) return;
         interactiveMode.style.display = 'block';
         previewSection.style.display = 'block';
         
-        attachAllButtonEvents(); // ボタン再起動
+        // シンプルに初期化
         updateImageTransform();
         setupCropSelector(currentImage);
         
+        // iPhoneのズレ対策として、描画が終わった頃に1回だけ再計算
         setTimeout(() => {
             setupCropSelector(currentImage);
             cropImage(currentImage);
-        }, 200);
+        }, 100);
     }
+
+    // ボタンの命令（HTMLのIDと一対一で紐付け）
+    document.getElementById('zoomIn').onclick = () => { zoomLevel += 0.1; setZoom(zoomLevel); };
+    document.getElementById('zoomOut').onclick = () => { zoomLevel -= 0.1; setZoom(zoomLevel); };
+    document.getElementById('moveUp').onclick = () => { imagePanY -= 10; applyUpdate(); };
+    document.getElementById('moveDown').onclick = () => { imagePanY += 10; applyUpdate(); };
+    document.getElementById('moveLeft').onclick = () => { imagePanX -= 10; applyUpdate(); };
+    document.getElementById('moveRight').onclick = () => { imagePanX += 10; applyUpdate(); };
+    
+    // 【重要】ドキュメント記載のIDに完全準拠
+    document.getElementById('resetAllBtn').onclick = () => {
+        zoomLevel = 1.0; imagePanX = 0; imagePanY = 0;
+        if(document.getElementById('zoomLevelDisplay')) document.getElementById('zoomLevelDisplay').textContent = '100%';
+        applyUpdate();
+    };
+    document.getElementById('resetPosBtn').onclick = () => {
+        imagePanX = 0; imagePanY = 0;
+        applyUpdate();
+    };
 
     function applyUpdate() {
         updateImageTransform();
@@ -1285,8 +1265,7 @@ let baseBoxHeight = 0;
         applyUpdate();
     }
 
-    applyCustomRatioBtn.addEventListener('click', (e) => {
-        e.preventDefault();
+    applyCustomRatioBtn.addEventListener('click', () => {
         const width = parseFloat(customWidthInput.value);
         const height = parseFloat(customHeightInput.value);
         if (!width || !height || width <= 0 || height <= 0) return;
@@ -1295,6 +1274,7 @@ let baseBoxHeight = 0;
         if (currentImage) refreshUI();
     });
 
+    // 操作（タッチ・マウス）
     selectorImage.addEventListener('touchstart', startDrag, {passive: false});
     document.addEventListener('touchmove', drag, {passive: false});
     document.addEventListener('touchend', endDrag);
@@ -1372,8 +1352,6 @@ let baseBoxHeight = 0;
         };
         reader.readAsDataURL(file);
     }
-
-    attachAllButtonEvents(); // 初期化
 
     // Load image from queue
     function loadImageFromQueue() {
