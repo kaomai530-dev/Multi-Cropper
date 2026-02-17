@@ -1227,7 +1227,7 @@ function refreshUI() {
         cropArea.style.height = '300px';
     }
 
-    // すべてのボタン（リセット2種含む）に命令を焼き直す
+    // すべてのボタン（特にリセット）に命令を「上書き」ではなく「新規登録」
     attachAllButtonEvents();
 
     setupCropSelector(currentImage);
@@ -1239,27 +1239,45 @@ function refreshUI() {
     }, 200);
 }
 
-// 2種類のリセットと操作ボタンを確実に動かす命令
+// ボタンの反応を確実にiPhoneへ伝える関数
 function attachAllButtonEvents() {
     const actions = {
-        'zoomIn': () => { zoomLevel += 0.1; setZoom(zoomLevel); },
-        'zoomOut': () => { zoomLevel -= 0.1; setZoom(zoomLevel); },
-        'moveUp': () => { imagePanY -= 15; updateImageTransform(); cropImage(currentImage); },
-        'moveDown': () => { imagePanY += 15; updateImageTransform(); cropImage(currentImage); },
-        'moveLeft': () => { imagePanX -= 15; updateImageTransform(); cropImage(currentImage); },
-        'moveRight': () => { imagePanX += 15; updateImageTransform(); cropImage(currentImage); },
-        // 全リセット（ズームも位置も戻す）
-        'resetBtn': () => { zoomLevel = 1.0; imagePanX = 0; imagePanY = 0; applyUpdate(); },
-        // 位置リセット（ズームは維持して位置だけ戻す）
-        'resetPosBtn': () => { imagePanX = 0; imagePanY = 0; applyUpdate(); }
+        'zoomIn': () => { setZoom(zoomLevel + 0.1); },
+        'zoomOut': () => { setZoom(zoomLevel - 0.1); },
+        'moveUp': () => { imagePanY -= 15; applyUpdate(); },
+        'moveDown': () => { imagePanY += 15; applyUpdate(); },
+        'moveLeft': () => { imagePanX -= 15; applyUpdate(); },
+        'moveRight': () => { imagePanX += 15; applyUpdate(); },
+        // すべてリセット：ズームを100%にし、位置も中央へ
+        'resetBtn': () => { 
+            imagePanX = 0; 
+            imagePanY = 0; 
+            setZoom(1.0); 
+        },
+        // 位置のみリセット：ズームは維持し、位置だけ中央へ
+        'resetPosBtn': () => { 
+            imagePanX = 0; 
+            imagePanY = 0; 
+            applyUpdate(); 
+        }
     };
 
     for (const [id, action] of Object.entries(actions)) {
         const el = document.getElementById(id);
         if (el) {
-            // touchstartとclickの両方で反応させる
-            el.onclick = (e) => { e.preventDefault(); action(); };
-            el.ontouchstart = (e) => { e.preventDefault(); action(); };
+            // 古い命令を一度消して、新しい命令を確実に入れる
+            el.onclick = null;
+            el.ontouchstart = null;
+            
+            // iPhone/PC両対応のイベント登録
+            const handler = (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                action();
+            };
+            
+            el.addEventListener('click', handler, { passive: false });
+            el.addEventListener('touchstart', handler, { passive: false });
         }
     }
 }
@@ -1272,7 +1290,9 @@ function applyUpdate() {
 function setZoom(val) {
     zoomLevel = Math.max(0.1, Math.min(5, val));
     const display = document.getElementById('zoomLevelDisplay');
-    if (display) display.textContent = Math.round(zoomLevel * 100) + '%';
+    if (display) {
+        display.textContent = Math.round(zoomLevel * 100) + '%';
+    }
     applyUpdate();
 }
 
