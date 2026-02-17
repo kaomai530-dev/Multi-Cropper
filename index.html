@@ -786,40 +786,41 @@ button,
             </div>
         </div>
 
-        <div class="interactive-mode" id="interactiveMode">
-            <h3>🎯 クロップ範囲を調整</h3>
-            <div class="interactive-hint">ピンチアウトでズーム / 画像をドラッグして位置調整</div>
-            <div class="crop-selector-container" id="cropSelector">
-                <div class="crop-selector-wrapper" id="cropWrapper">
-                    <img id="selectorImage" class="crop-selector-image" alt="Crop Selector">
-                    <div class="crop-box" id="cropBox">
-                        <div class="crop-guide horizontal" style="top: 33.33%"></div>
-                        <div class="crop-guide horizontal" style="top: 66.66%"></div>
-                        <div class="crop-guide vertical" style="left: 33.33%"></div>
-                        <div class="crop-guide vertical" style="left: 66.66%"></div>
-                    </div>
-                </div>
-            </div>
-            <div class="zoom-controls">
-                <button class="zoom-btn" id="zoomOut">−</button>
-                <div class="zoom-level" id="zoomLevel">100%</div>
-                <button class="zoom-btn" id="zoomIn">+</button>
-                <button class="zoom-btn" id="zoomReset">⟲</button>
-                <button class="zoom-btn" id="horizontalReset" title="左右の位置をリセット">↔</button>
-            </div>
-            <div class="fine-tune-controls">
-                <div></div>
-                <button class="fine-tune-btn" id="moveUp" title="上に1px移動">↑</button>
-                <div></div>
-                <button class="fine-tune-btn" id="moveLeft" title="左に1px移動">←</button>
-                <div></div>
-                <button class="fine-tune-btn" id="moveRight" title="右に1px移動">→</button>
-                <div></div>
-                <button class="fine-tune-btn" id="moveDown" title="下に1px移動">↓</button>
-                <div></div>
+       <div class="interactive-mode" id="interactiveMode">
+    <h3>🎯 クロップ範囲を調整</h3>
+    <div class="interactive-hint">ピンチアウトでズーム / 画像をドラッグして位置調整</div>
+    <div class="crop-selector-container" id="cropSelector">
+        <div class="crop-selector-wrapper" id="cropWrapper">
+            <img id="selectorImage" class="crop-selector-image" alt="Crop Selector">
+            <div class="crop-box" id="cropBox">
+                <div class="crop-guide horizontal" style="top: 33.33%"></div>
+                <div class="crop-guide horizontal" style="top: 66.66%"></div>
+                <div class="crop-guide vertical" style="left: 33.33%"></div>
+                <div class="crop-guide vertical" style="left: 66.66%"></div>
             </div>
         </div>
+    </div>
+    
+    <div class="zoom-controls">
+        <button class="zoom-btn" id="zoomOut" title="ズームアウト">−</button>
+        <div class="zoom-level" id="zoomLevelDisplay">100%</div>
+        <button class="zoom-btn" id="zoomIn" title="ズームイン">+</button>
+        <button class="zoom-btn" id="resetAllBtn" title="全リセット">🔄</button>
+        <button class="zoom-btn" id="resetPosBtn" title="左右の位置をリセット">↔️</button>
+    </div>
 
+    <div class="fine-tune-controls">
+        <div></div>
+        <button class="fine-tune-btn" id="moveUp" title="上に1px移動">↑</button>
+        <div></div>
+        <button class="fine-tune-btn" id="moveLeft" title="左に1px移動">←</button>
+        <div></div>
+        <button class="fine-tune-btn" id="moveRight" title="右に1px移動">→</button>
+        <div></div>
+        <button class="fine-tune-btn" id="moveDown" title="下に1px移動">↓</button>
+        <div></div>
+    </div>
+</div>
         <div class="preview-container">
             <div class="preview-label" id="croppedLabel">クロップ後（1920×817）</div>
             <div class="canvas-container">
@@ -1236,11 +1237,10 @@ function setZoom(val) {
     zoomLevel = Math.max(0.1, Math.min(5, val));
     var display = document.getElementById('zoomLevelDisplay');
     if (display) {
-        display.innerText = Math.round(zoomLevel * 100) + '%';
+        display.textContent = Math.round(zoomLevel * 100) + '%';
     }
     applyUpdate();
 }
-
 function applyUpdate() {
     updateImageTransform();
     cropImage(currentImage);
