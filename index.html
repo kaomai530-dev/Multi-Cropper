@@ -1281,30 +1281,37 @@ applyCustomRatioBtn.onclick = function(e) {
     }
 };
 
-// --- 統合管理（修正版：デザイン崩れ防止＆1%ズーム） ---
+// --- 最終修正：デザイン復旧 ＆ 画像選択接続 ＆ 1%ズーム ---
 (function() {
-    var targetImgInput = document.getElementById('imageInput') || document.getElementById('fileInput');
-    var targetUploadArea = document.getElementById('uploadArea');
-
-    if (targetUploadArea && targetImgInput) {
-        targetUploadArea.onclick = function() { targetImgInput.click(); };
-        targetImgInput.onchange = function(e) {
-            if (e.target.files.length > 0) handleFile(e.target.files[0]);
-        };
+    // 1. 画像選択の接続を安全に行う
+    function connectUpload() {
+        var input = document.getElementById('imageInput') || document.getElementById('fileInput');
+        var area = document.getElementById('uploadArea');
+        if (area && input) {
+            area.onclick = function(e) { 
+                if (e.target !== input) input.click(); 
+            };
+            input.onchange = function(e) {
+                if (e.target.files.length > 0) handleFile(e.target.files[0]);
+            };
+        }
     }
 
-    var touchTarget = document.getElementById('cropWrapper') || selectorImage;
-    var initialDistance = null;
+    // 2. ズーム操作（1%単位）の設定
+    function setupZoomControls() {
+        var touchTarget = document.getElementById('cropWrapper') || document.getElementById('selectorImage');
+        if (!touchTarget) return;
 
-    if (touchTarget) {
-        // ホイールを1%単位に
+        var initialDistance = null;
+
+        // ホイール（1%刻み）
         touchTarget.addEventListener('wheel', function(e) {
             e.preventDefault();
             var delta = e.deltaY > 0 ? -0.01 : 0.01; 
             setZoom(zoomLevel + delta);
         }, { passive: false });
 
-        // ピンチズーム（1%単位の滑らかな動き）
+        // ピンチ（1%刻み）
         touchTarget.addEventListener('touchstart', function(e) {
             if (e.touches && e.touches.length === 2) {
                 initialDistance = Math.hypot(
@@ -1338,9 +1345,22 @@ applyCustomRatioBtn.onclick = function(e) {
 
         touchTarget.onmousedown = startDrag;
     }
-})();
-// --- ここまでを貼り付け ---
 
+    // ページ読み込み完了時、または即座に実行
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function() {
+            connectUpload();
+            setupZoomControls();
+        });
+    } else {
+        connectUpload();
+        setupZoomControls();
+    }
+})();
+
+// マウス移動・終了はグローバルで維持
+document.addEventListener('mousemove', drag);
+document.addEventListener('mouseup', endDrag);
 // マウス操作の紐付け
 touchTarget.onmousedown = startDrag;
 document.addEventListener('mousemove', drag);
