@@ -745,10 +745,10 @@ button,
     <div class="subtitle">Quickly crop screenshots for iPhone/iPad</div>
 
     <div class="upload-area" id="uploadArea">
-        <div class="upload-icon">📱</div>
-        <div class="upload-text">Tap to Select Images</div>
-        <input type="file" id="fileInput" accept="image/*" multiple>
-    </div>
+    <div class="upload-icon">📱</div>
+    <div class="upload-text">Tap to Select Images</div>
+    <input type="file" id="imageInput" accept="image/*" multiple>
+</div>
 
     <div class="preview-section" id="previewSection">
         <div class="aspect-ratio-selector">
@@ -1281,18 +1281,29 @@ applyCustomRatioBtn.onclick = function(e) {
     }
 };
 
-// マウスホイール・ピンチズーム・ドラッグの統合管理
+// --- 統合管理：画像選択の再接続 ＆ 1%ズーム ---
+const imageInput = document.getElementById('imageInput');
+const uploadArea = document.getElementById('uploadArea');
+
+// 画像選択が効かない問題を解消
+if (uploadArea && imageInput) {
+    uploadArea.onclick = () => imageInput.click();
+    imageInput.onchange = (e) => {
+        if (e.target.files.length > 0) handleFile(e.target.files[0]);
+    };
+}
+
+const touchTarget = document.getElementById('cropWrapper') || selectorImage;
 let initialDistance = null;
 
-// 操作対象を画像（selectorImage）から外枠（cropWrapper）に変更して反応を改善
-const touchTarget = document.getElementById('cropWrapper') || selectorImage;
-
+// マウスホイールを1%単位に（0.1から0.01へ）
 touchTarget.addEventListener('wheel', function(e) {
     e.preventDefault();
-    const delta = e.deltaY > 0 ? -0.1 : 0.1;
+    const delta = e.deltaY > 0 ? -0.01 : 0.01; 
     setZoom(zoomLevel + delta);
 }, { passive: false });
 
+// ピンチズーム（1%単位の滑らかな動き）
 touchTarget.addEventListener('touchstart', function(e) {
     if (e.touches && e.touches.length === 2) {
         initialDistance = Math.hypot(
@@ -1311,7 +1322,8 @@ touchTarget.addEventListener('touchmove', function(e) {
             e.touches[0].pageX - e.touches[1].pageX,
             e.touches[0].pageY - e.touches[1].pageY
         );
-        const delta = (currentDistance - initialDistance) * 0.005; // 感度調整
+        // 感度を 0.002 にして繊細な調整を可能に
+        const delta = (currentDistance - initialDistance) * 0.002; 
         setZoom(zoomLevel + delta);
         initialDistance = currentDistance;
     } else {
@@ -1319,16 +1331,15 @@ touchTarget.addEventListener('touchmove', function(e) {
     }
 }, { passive: false });
 
-touchTarget.addEventListener('touchend', function() {
+touchTarget.addEventListener('touchend', () => {
     initialDistance = null;
     endDrag();
 });
 
-// PC用のマウス操作
+// マウス操作の紐付け
 touchTarget.onmousedown = startDrag;
 document.addEventListener('mousemove', drag);
 document.addEventListener('mouseup', endDrag);
-
 function updateImageTransform() {
     if (selectorImage) {
         selectorImage.style.transform = 'translate(' + imagePanX + 'px, ' + imagePanY + 'px) scale(' + zoomLevel + ')';
