@@ -1358,13 +1358,7 @@ applyCustomRatioBtn.onclick = function(e) {
     }
 })();
 
-// マウス移動・終了はグローバルで維持
-document.addEventListener('mousemove', drag);
-document.addEventListener('mouseup', endDrag);
-// マウス操作の紐付け
-touchTarget.onmousedown = startDrag;
-document.addEventListener('mousemove', drag);
-document.addEventListener('mouseup', endDrag);
+
 function updateImageTransform() {
     if (selectorImage) {
         selectorImage.style.transform = 'translate(' + imagePanX + 'px, ' + imagePanY + 'px) scale(' + zoomLevel + ')';
