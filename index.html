@@ -1201,73 +1201,34 @@ let baseBoxHeight = 0;
     });
     // --- 1200行目付近：ここから最後まで一気に上書き ---
 
-    // チェックボックスの連動（ここから上書き）
-autoRemoveCheckbox.addEventListener('change', (e) => {
+    autoRemoveCheckbox.onchange = (e) => {
     autoRemoveBlackBars = e.target.checked;
     if (!originalImage) return;
     zoomLevel = 1.0; imagePanX = 0; imagePanY = 0;
-    updateZoomDisplay();
-    if (autoRemoveBlackBars) {
-        detectAndRemoveBlackBars(originalImage);
-    } else {
-        currentImage = originalImage;
-        refreshUI();
-    }
-});
+    setZoom(1.0);
+    if (autoRemoveBlackBars) detectAndRemoveBlackBars(originalImage);
+    else { currentImage = originalImage; refreshUI(); }
+};
 
 function refreshUI() {
     if (!currentImage) return;
     interactiveMode.style.display = 'block';
     previewSection.style.display = 'block';
-    
-    // リンク1の正常な表示ロジックを呼び出し
     updateImageTransform();
     setupCropSelector(currentImage);
-    
-    // エラー対策：ボタンを少し遅らせて確実に接続
     setTimeout(() => {
-        setupCropSelector(currentImage);
         cropImage(currentImage);
-        bindAllButtonsSafely(); 
-    }, 200);
+        // ボタンへの命令注入を「強制実行」
+        bindButtonsDirectly(); 
+    }, 100);
 }
 
-// 数字の表示を確実に更新する
-function updateZoomDisplay() {
+// 画面の数字と連動させる唯一の窓口
+function setZoom(val) {
+    zoomLevel = Math.max(0.1, Math.min(5, val));
     const display = document.getElementById('zoomLevelDisplay');
-    if (display) {
-        display.textContent = Math.round(zoomLevel * 100) + '%';
-    }
-}
-
-// ボタンに機能を紐付ける（エラーを回避するガード付き）
-function bindAllButtonsSafely() {
-    const actions = {
-        'zoomIn': () => { zoomLevel += 0.1; setZoom(zoomLevel); },
-        'zoomOut': () => { zoomLevel -= 0.1; setZoom(zoomLevel); },
-        'moveUp': () => { imagePanY -= 15; applyUpdate(); },
-        'moveDown': () => { imagePanY += 15; applyUpdate(); },
-        'moveLeft': () => { imagePanX -= 15; applyUpdate(); },
-        'moveRight': () => { imagePanX += 15; applyUpdate(); },
-        // リセットボタン（ドキュメント版のID resetAllBtn / resetPosBtn）
-        'resetAllBtn': () => { 
-            zoomLevel = 1.0; imagePanX = 0; imagePanY = 0; 
-            updateZoomDisplay(); 
-            applyUpdate(); 
-        },
-        'resetPosBtn': () => { 
-            imagePanX = 0; imagePanY = 0; 
-            applyUpdate(); 
-        }
-    };
-
-    Object.keys(actions).forEach(id => {
-        const el = document.getElementById(id);
-        if (el) {
-            el.onclick = (e) => { e.preventDefault(); actions[id](); };
-            el.ontouchstart = (e) => { e.preventDefault(); actions[id](); };
-        }
-    });
+    if (display) display.innerText = Math.round(zoomLevel * 100) + '%';
+    applyUpdate();
 }
 
 function applyUpdate() {
@@ -1275,56 +1236,61 @@ function applyUpdate() {
     cropImage(currentImage);
 }
 
-function setZoom(val) {
-    zoomLevel = Math.max(0.1, Math.min(5, val));
-    updateZoomDisplay();
-    applyUpdate();
+// IDを直接指定して、1秒も待たずに命令を叩き込む
+function bindButtonsDirectly() {
+    const d = document;
+    const click = (id, fn) => {
+        const el = d.getElementById(id);
+        if (el) {
+            el.onclick = (e) => { e.preventDefault(); fn(); };
+            el.ontouchstart = (e) => { e.preventDefault(); fn(); };
+        }
+    };
+    click('zoomIn', () => setZoom(zoomLevel + 0.1));
+    click('zoomOut', () => setZoom(zoomLevel - 0.1));
+    click('moveUp', () => { imagePanY -= 15; applyUpdate(); });
+    click('moveDown', () => { imagePanY += 15; applyUpdate(); });
+    click('moveLeft', () => { imagePanX -= 15; applyUpdate(); });
+    click('moveRight', () => { imagePanX += 15; applyUpdate(); });
+    click('resetAllBtn', () => { zoomLevel = 1.0; imagePanX = 0; imagePanY = 0; setZoom(1.0); });
+    click('resetPosBtn', () => { imagePanX = 0; imagePanY = 0; applyUpdate(); });
 }
 
-// ズレを防止する座標計算（リンク1のロジック）
-function updateImageTransform() {
-    if (!selectorImage) return;
-    selectorImage.style.transform = `translate(${imagePanX}px, ${imagePanY}px) scale(${zoomLevel})`;
-}
+// ダミー（エラー防止）
+function updateCustomCropPosition() {}
 
-// ---------------------------------------------------------
-// 真犯人を消去：エラーが出ている未定義関数をダミーで作成
-// ---------------------------------------------------------
-function updateCustomCropPosition() {
-    // 存在しない関数を呼ばれてもエラーにならないよう中身を空にする
-}
-
-applyCustomRatioBtn.addEventListener('click', (e) => {
+applyCustomRatioBtn.onclick = (e) => {
     e.preventDefault();
-    const width = parseFloat(customWidthInput.value);
-    const height = parseFloat(customHeightInput.value);
-    if (!width || !height || width <= 0 || height <= 0) return;
-    ratioBtns.forEach(b => b.classList.remove('active'));
-    TARGET_WIDTH = width; TARGET_HEIGHT = height; TARGET_RATIO = width / height;
-    if (currentImage) refreshUI();
-});
+    const w = parseFloat(customWidthInput.value), h = parseFloat(customHeightInput.value);
+    if (w > 0 && h > 0) {
+        TARGET_WIDTH = w; TARGET_HEIGHT = h; TARGET_RATIO = w / h;
+        if (currentImage) refreshUI();
+    }
+};
 
-// 操作系
 selectorImage.addEventListener('touchstart', startDrag, {passive: false});
 document.addEventListener('touchmove', drag, {passive: false});
 document.addEventListener('touchend', endDrag);
-selectorImage.addEventListener('mousedown', startDrag);
-document.addEventListener('mousemove', drag);
-document.addEventListener('mouseup', endDrag);
+selectorImage.onmousedown = startDrag;
+document.onmousemove = drag;
+document.onmouseup = endDrag;
+
+function updateImageTransform() {
+    if (selectorImage) selectorImage.style.transform = `translate(${imagePanX}px, ${imagePanY}px) scale(${zoomLevel})`;
+}
 
 function startDrag(e) {
-    if (e.touches && e.touches.length > 1) return;
     isDragging = true;
-    const touch = e.touches ? e.touches[0] : e;
-    dragStartX = touch.clientX; dragStartY = touch.clientY;
+    const t = e.touches ? e.touches[0] : e;
+    dragStartX = t.clientX; dragStartY = t.clientY;
     imageStartX = imagePanX; imageStartY = imagePanY;
 }
 
 function drag(e) {
     if (!isDragging) return;
-    const touch = e.touches ? e.touches[0] : e;
-    imagePanX = imageStartX + (touch.clientX - dragStartX);
-    imagePanY = imageStartY + (touch.clientY - dragStartY);
+    const t = e.touches ? e.touches[0] : e;
+    imagePanX = imageStartX + (t.clientX - dragStartX);
+    imagePanY = imageStartY + (t.clientY - dragStartY);
     updateImageTransform();
     if (e.cancelable) e.preventDefault();
 }
@@ -1332,57 +1298,48 @@ function drag(e) {
 function endDrag() { if (isDragging) { isDragging = false; cropImage(currentImage); } }
 
 function detectAndRemoveBlackBars(img) {
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-    canvas.width = img.width; canvas.height = img.height;
+    const c = d.createElement('canvas'), ctx = c.getContext('2d');
+    c.width = img.width; c.height = img.height;
     ctx.drawImage(img, 0, 0);
-    const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
-    const threshold = 15;
-    let top = 0, bottom = canvas.height;
-    for (let y = 0; y < canvas.height * 0.4; y++) {
-        let isBlack = true;
-        for (let x = 0; x < canvas.width; x += 10) {
-            const i = (y * canvas.width + x) * 4;
-            if (data[i] > threshold || data[i+1] > threshold || data[i+2] > threshold) { isBlack = false; break; }
+    const data = ctx.getImageData(0, 0, c.width, c.height).data, th = 15;
+    let top = 0, bottom = c.height;
+    for (let y = 0; y < c.height * 0.4; y++) {
+        let isB = true;
+        for (let x = 0; x < c.width; x += 10) {
+            const i = (y * c.width + x) * 4;
+            if (data[i] > th || data[i+1] > th || data[i+2] > th) { isB = false; break; }
         }
-        if (!isBlack) { top = y; break; }
+        if (!isB) { top = y; break; }
     }
-    for (let y = canvas.height - 1; y > canvas.height * 0.6; y--) {
-        let isBlack = true;
-        for (let x = 0; x < canvas.width; x += 10) {
-            const i = (y * canvas.width + x) * 4;
-            if (data[i] > threshold || data[i+1] > threshold || data[i+2] > threshold) { isBlack = false; break; }
+    for (let y = c.height - 1; y > c.height * 0.6; y--) {
+        let isB = true;
+        for (let x = 0; x < c.width; x += 10) {
+            const i = (y * c.width + x) * 4;
+            if (data[i] > th || data[i+1] > th || data[i+2] > th) { isB = false; break; }
         }
-        if (!isBlack) { bottom = y + 1; break; }
+        if (!isB) { bottom = y + 1; break; }
     }
-    const resCanvas = document.createElement('canvas');
-    resCanvas.width = img.width; resCanvas.height = bottom - top;
-    resCanvas.getContext('2d').drawImage(img, 0, top, img.width, bottom - top, 0, 0, img.width, bottom - top);
+    const res = d.createElement('canvas');
+    res.width = img.width; res.height = bottom - top;
+    res.getContext('2d').drawImage(img, 0, top, img.width, bottom - top, 0, 0, img.width, bottom - top);
     const newImg = new Image();
     newImg.onload = () => { currentImage = newImg; refreshUI(); };
-    newImg.src = resCanvas.toDataURL('image/jpeg', 0.95);
+    newImg.src = res.toDataURL('image/jpeg', 0.95);
 }
 
 function handleFile(file) {
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (e) => {
+    const r = new FileReader();
+    r.onload = (e) => {
         const img = new Image();
-        img.onload = () => {
-            originalImage = img; currentImage = img;
-            if (autoRemoveBlackBars) { detectAndRemoveBlackBars(originalImage); }
-            else { refreshUI(); }
-        };
+        img.onload = () => { originalImage = img; currentImage = img; if (autoRemoveBlackBars) detectAndRemoveBlackBars(img); else refreshUI(); };
         img.src = e.target.result;
     };
-    reader.readAsDataURL(file);
+    r.readAsDataURL(file);
 }
 
-// 初回読み込み
-bindAllButtonsSafely();
-
-// 初期化
-bindAllButtonsSafely();
+// ページ読み込み完了時と同時にボタンを接続
+bindButtonsDirectly();
     // Load image from queue
     function loadImageFromQueue() {
         if (currentImageIndex < imageQueue.length) {
