@@ -272,13 +272,14 @@
             margin-top: 10px;
         }
 
-      .controls {
-            display: grid; /* flex から grid に変更 */
-            grid-template-columns: 1fr 1fr; /* 常に「左側」「右側」の2枠を作る */
-            gap: 15px;
-            justify-content: center;
+     .controls {
+            display: flex;
+            flex-direction: column; /* 縦に並べる設定 */
+            gap: 12px;
+            align-items: center; /* 中央寄せ */
             margin-top: 20px;
-            max-width: 400px; /* 必要に応じて調整してください */
+            width: 100%;
+            max-width: 320px; /* iPhoneで押しやすい横幅 */
             margin-left: auto;
             margin-right: auto;
         }
@@ -1720,13 +1721,12 @@
                 downloadAllBtn.style.display = 'inline-block';
                 deleteCurrentBtn.style.display = 'inline-block';
                 
-                // 1724行目付近：ここから書き換え
+             // 1724行目付近から書き換え
             if (currentImageIndex > 0) {
-                prevBtn.style.visibility = 'visible';
+                prevBtn.style.display = 'inline-block'; // 表示する
                 prevBtn.disabled = false;
             } else {
-                prevBtn.style.visibility = 'hidden'; // これで左側の場所を確保したまま消せます
-                prevBtn.disabled = true;
+                prevBtn.style.display = 'none'; // 1枚目では完全に消す（縦並びなのでズレません）
             }
             // ここまで
                 
@@ -1737,14 +1737,14 @@
             } else if (imageQueue.length === 1) {
                 // Single image - show delete button but hide others
                 batchProgress.style.display = 'none';
-                prevBtn.style.visibility = 'hidden';
+                prevBtn.style.display = 'none'
                 nextBtn.style.display = 'none';
                 deleteCurrentBtn.style.display = 'inline-block';
                 downloadAllBtn.style.display = 'none';
             } else {
                 // No images
                 batchProgress.style.display = 'none';
-                prevBtn.style.visibility = 'hidden';
+                prevBtn.style.display = 'none'
                 nextBtn.style.display = 'none';
                 deleteCurrentBtn.style.display = 'none';
                 downloadAllBtn.style.display = 'none';
