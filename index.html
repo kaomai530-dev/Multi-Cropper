@@ -362,6 +362,7 @@
             touch-action: none;
             border-radius: 0;
             background: #000;
+            padding-right: 2px;
         }
 
         .crop-selector-wrapper {
@@ -1092,42 +1093,34 @@
                     // Use stored filename or fallback to generic name
                     const filename = img.filename || `cropped_${index + 1}.png`;
                     
-                    // Convert data URL to blob
-                    const base64Data = img.dataURL.split(',')[1];
-                    const byteCharacters = atob(base64Data);
-                    const byteNumbers = new Array(byteCharacters.length);
-                    for (let j = 0; j < byteCharacters.length; j++) {
-                        byteNumbers[j] = byteCharacters.charCodeAt(j);
-                    }
-                    const byteArray = new Uint8Array(byteNumbers);
+                    // Convert data URL to blob using fetch (more reliable on Safari)
+                    const response = await fetch(img.dataURL);
+                    const blob = await response.blob();
                     
                     // Add to ZIP with original filename
-                    zip.file(filename, byteArray);
+                    zip.file(filename, blob);
                 }
 
                 // Generate ZIP file
                 const zipBlob = await zip.generateAsync({ type: 'blob' });
                 
-                // Create download link
+                // Create download URL
                 const url = URL.createObjectURL(zipBlob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `cropped_images_${Date.now()}.zip`;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
+                const filename = `cropped_images_${Date.now()}.zip`;
 
-                // Show success message
+                // Show download button instead of auto-download (better Safari compatibility)
                 downloadImage.innerHTML = `
                     <div style="padding: 40px; text-align: center;">
-                        <div style="font-size: 3em; margin-bottom: 20px;">✅</div>
-                        <div style="color: #667eea; font-size: 1.3em; margin-bottom: 15px;">ZIP download started!</div>
-                        <div style="color: #aaa; font-size: 0.9em; line-height: 1.6;">
+                        <div style="font-size: 3em; margin-bottom: 20px;">📦</div>
+                        <div style="color: #667eea; font-size: 1.3em; margin-bottom: 20px;">ZIP file ready!</div>
+                        <a href="${url}" download="${filename}" class="btn-primary" style="display: inline-block; margin-bottom: 20px; text-decoration: none;">
+                            📥 Download ZIP
+                        </a>
+                        <div style="color: #aaa; font-size: 0.9em; line-height: 1.6; margin-top: 20px;">
                             <p>📱 <strong>iPhone/iPad:</strong></p>
-                            <p>1. ZIP file is in Files app > Downloads folder</p>
-                            <p>2. Tap ZIP file to extract</p>
-                            <p>3. Select images → Share → "Save Images" to Photos</p>
+                            <p>1. Tap "Download ZIP" button above</p>
+                            <p>2. ZIP file saves to Files app > Downloads</p>
+                            <p>3. Tap ZIP file to extract images</p>
                         </div>
                         <button class="btn-secondary" onclick="location.reload()" style="margin-top: 20px;">Close</button>
                     </div>
