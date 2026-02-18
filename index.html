@@ -289,6 +289,8 @@
             cursor: pointer;
             transition: all 0.3s ease;
             font-family: inherit;
+            /* --- ここを追加 --- */
+            touch-action: manipulation; 
         }
 
         .btn-primary {
@@ -359,7 +361,9 @@
             max-width: 100%;
             margin-bottom: 20px;
             overflow: hidden;
-            touch-action: none;
+            /* ここが重要です */
+            touch-action: none; 
+            -webkit-user-select: none; /* iPhoneでの長押しメニュー防止 */
             border-radius: 0;
             background: #000;
             padding-right: 2px;
@@ -2113,9 +2117,9 @@
             ctx.fillStyle = "#000000";
             ctx.fillRect(0, 0, outW, outH);
 
-            // 描画
-            ctx.drawImage(img, sx, sy, sw, sh, 0, 0, outW, outH);
-
+           // 【修正後】元画像全体を、計算した位置・サイズで描画（これで余白が生まれます）
+            ctx.drawImage(img, 0, 0, nw, nh, -sx * (outW / sw), -sy * (outH / sh), nw * (outW / sw), nh * (outH / sh));
+            
             // タイムスタンプ付きでキャッシュ回避
             preview.src = canvas.toDataURL('image/png') + '#' + new Date().getTime();
         }
