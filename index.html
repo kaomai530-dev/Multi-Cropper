@@ -274,7 +274,6 @@
 
      .controls {
             display: grid;
-            /* 横2列のグリッドを作成 */
             grid-template-columns: 1fr 1fr; 
             gap: 12px;
             margin-top: 20px;
@@ -284,13 +283,20 @@
             margin-right: auto;
         }
 
-        /* 各ボタンの配置（IDで指定） */
-        #downloadBtn    { grid-column: 1 / 3; order: 1; } /* 1段目：保存 */
-        #nextBtn        { grid-column: 1 / 2; order: 2; } /* 2段目左：次の画像 */
-        #prevBtn        { grid-column: 2 / 3; order: 3; } /* 2段目右：前の画像 */
-        #deleteCurrentBtn { grid-column: 1 / 3; order: 4; } /* 3段目：削除 */
-        #downloadAllBtn { grid-column: 1 / 3; order: 5; } /* 4段目：一括保存 */
+        /* 下のエリアのボタンだけを大きくする */
+        .controls button {
+            width: 100%;
+            padding: 12px 10px;
+            min-height: 50px;
+            font-size: 1em;
+        }
 
+        /* ボタンの配置場所を指定 */
+        #downloadBtn    { grid-column: 1 / 3; order: 1; }
+        #nextBtn        { grid-column: 1 / 2; order: 2; }
+        #prevBtn        { grid-column: 2 / 3; order: 3; }
+        #deleteCurrentBtn { grid-column: 1 / 3; order: 4; }
+        #downloadAllBtn { grid-column: 1 / 3; order: 5; }
         /* 共通のボタン設定（もともとあるbuttonの部分） */
         button {
             width: 100%;
