@@ -1720,12 +1720,15 @@
                 downloadAllBtn.style.display = 'inline-block';
                 deleteCurrentBtn.style.display = 'inline-block';
                 
-                // Show prev button only if not on first image
-                if (currentImageIndex > 0) {
-                    prevBtn.style.display = 'inline-block';
-                } else {
-                    prevBtn.style.display = 'none';
-                }
+                // 1724行目付近：ここから書き換え
+            if (currentImageIndex > 0) {
+                prevBtn.style.visibility = 'visible';
+                prevBtn.disabled = false;
+            } else {
+                prevBtn.style.visibility = 'hidden'; // これで左側の場所を確保したまま消せます
+                prevBtn.disabled = true;
+            }
+            // ここまで
                 
                 currentImageNum.textContent = currentImageIndex + 1;
                 totalImages.textContent = imageQueue.length;
@@ -1734,14 +1737,14 @@
             } else if (imageQueue.length === 1) {
                 // Single image - show delete button but hide others
                 batchProgress.style.display = 'none';
-                prevBtn.style.display = 'none';
+                prevBtn.style.visibility = 'hidden';
                 nextBtn.style.display = 'none';
                 deleteCurrentBtn.style.display = 'inline-block';
                 downloadAllBtn.style.display = 'none';
             } else {
                 // No images
                 batchProgress.style.display = 'none';
-                prevBtn.style.display = 'none';
+                prevBtn.style.visibility = 'hidden';
                 nextBtn.style.display = 'none';
                 deleteCurrentBtn.style.display = 'none';
                 downloadAllBtn.style.display = 'none';
