@@ -279,12 +279,21 @@
             gap: 12px;
             margin-top: 20px;
             width: 100%;
-            max-width: 350px; /* iPhoneで押しやすい幅 */
+            max-width: 350px;
             margin-left: auto;
             margin-right: auto;
         }
 
+        /* 各ボタンの配置（IDで指定） */
+        #downloadBtn    { grid-column: 1 / 3; order: 1; } /* 1段目：保存 */
+        #nextBtn        { grid-column: 1 / 2; order: 2; } /* 2段目左：次の画像 */
+        #prevBtn        { grid-column: 2 / 3; order: 3; } /* 2段目右：前の画像 */
+        #deleteCurrentBtn { grid-column: 1 / 3; order: 4; } /* 3段目：削除 */
+        #downloadAllBtn { grid-column: 1 / 3; order: 5; } /* 4段目：一括保存 */
+
+        /* 共通のボタン設定（もともとあるbuttonの部分） */
         button {
+            width: 100%;
             padding: 12px 10px;
             border: none;
             border-radius: 8px;
@@ -294,7 +303,6 @@
             transition: all 0.3s ease;
             font-family: inherit;
             touch-action: manipulation;
-            width: 100%; /* グリッドの枠いっぱいに広げる */
             min-height: 50px;
         }
 
@@ -1728,15 +1736,18 @@
                 downloadAllBtn.style.display = 'inline-block';
                 deleteCurrentBtn.style.display = 'inline-block';
                 
-             // 1724行目付近から書き換え
+             // 1724行目付近：ここをまるごと上書きしてください
             if (currentImageIndex > 0) {
-                prevBtn.style.visibility = 'visible'; // displayではなくvisibility
+                // 2枚目以降：普通に表示
+                prevBtn.style.visibility = 'visible';
                 prevBtn.disabled = false;
             } else {
-                prevBtn.style.visibility = 'hidden'; // これで右側の空枠が維持される
+                // 1枚目：透明にして場所だけキープ（これで「次へ」が動かない）
+                prevBtn.style.visibility = 'hidden';
                 prevBtn.disabled = true;
             }
-            // ここまで
+            // 念のため display が none にならないよう固定
+            prevBtn.style.display = 'inline-block';
                 
                 currentImageNum.textContent = currentImageIndex + 1;
                 totalImages.textContent = imageQueue.length;
