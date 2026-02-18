@@ -1975,58 +1975,7 @@
             const imgNaturalWidth = img.naturalWidth || img.width;
             const imgNaturalHeight = img.naturalHeight || img.height;
             
-            console.log(`setupCropSelector: src match=${selectorImage.src === img.src}, naturalW=${imgNaturalWidth}, naturalH=${imgNaturalHeight}, lastW=${window.lastNaturalWidth}, lastH=${window.lastNaturalHeight}`);
-            
-            // If already showing the same image with same dimensions, don't reload
-            if (selectorImage.src === img.src && 
-                window.baseImageWidth > 0 &&
-                window.lastNaturalWidth === imgNaturalWidth &&
-                window.lastNaturalHeight === imgNaturalHeight) {
-                console.log('setupCropSelector: Early return (same image) - recalculating baseBox');
-                
-                // Recalculate baseBox with current TARGET_RATIO
-                const imgRatio = imgNaturalWidth / imgNaturalHeight;
-                const currentTargetRatio = TARGET_WIDTH / TARGET_HEIGHT;
-                const ratioDiff = Math.abs(imgRatio - currentTargetRatio) / currentTargetRatio;
-                const displayW = window.baseImageWidth;
-                const displayH = window.baseImageHeight;
-                
-                let boxWidth, boxHeight;
-                if (imgRatio > currentTargetRatio && ratioDiff > 0.05) {
-                    boxHeight = displayH;
-                    boxWidth = boxHeight * currentTargetRatio;
-                } else {
-                    boxWidth = displayW;
-                    boxHeight = boxWidth / currentTargetRatio;
-                    if (boxHeight > displayH + 1) {
-                        boxHeight = displayH;
-                        boxWidth = boxHeight * currentTargetRatio;
-                    } else {
-                        boxHeight = Math.min(boxHeight, displayH);
-                    }
-                }
-                window.baseBoxWidth = boxWidth;
-                window.baseBoxHeight = boxHeight;
-                cropBox.style.width = boxWidth + 'px';
-                cropBox.style.height = boxHeight + 'px';
-                
-                const containerRect = cropSelector.getBoundingClientRect();
-                const boxLeft = (containerRect.width - boxWidth) / 2;
-                const boxTop = (containerRect.height - boxHeight) / 2;
-                cropBox.style.left = boxLeft + 'px';
-                cropBox.style.top = boxTop + 'px';
-                console.log(`Early return - cropBox position: left=${boxLeft}, top=${boxTop}, containerW=${containerRect.width}, containerH=${containerRect.height}`);
-                
-                zoomLevel = 1;
-                imagePanX = 0;
-                imagePanY = 0;
-                window.zoomLevel = 1;
-                window.imagePanX = 0;
-                window.imagePanY = 0;
-                selectorImage.style.transform = 'translate(0px, 0px) scale(1)';
-                cropImage(img);
-                return;
-            }
+            console.log(`setupCropSelector: naturalW=${imgNaturalWidth}, naturalH=${imgNaturalHeight}`);
             
             console.log('setupCropSelector: Full setup');
             // Store natural dimensions for comparison
