@@ -272,12 +272,15 @@
             margin-top: 10px;
         }
 
-        .controls {
-            display: flex;
+      .controls {
+            display: grid; /* flex から grid に変更 */
+            grid-template-columns: 1fr 1fr; /* 常に「左側」「右側」の2枠を作る */
             gap: 15px;
             justify-content: center;
-            flex-wrap: wrap;
             margin-top: 20px;
+            max-width: 400px; /* 必要に応じて調整してください */
+            margin-left: auto;
+            margin-right: auto;
         }
 
         button {
