@@ -272,7 +272,7 @@
             margin-top: 10px;
         }
 
-     /* 下の操作エリア（グリッド配置） */
+     /* 1. 下の操作エリア（ここだけをグリッドにする） */
         .controls {
             display: grid;
             grid-template-columns: 1fr 1fr; 
@@ -284,24 +284,26 @@
             margin-right: auto;
         }
 
-        /* 下の操作エリアのボタン「だけ」を大きくする */
+        /* 2. 下のエリアのボタン「だけ」を大きく設定（他には影響しません） */
         .controls button {
-            width: 100%;
-            min-height: 50px;
-            padding: 12px 10px;
-            font-size: 1em;
+            width: 100% !important;   /* 下のボタンだけ幅いっぱいに */
+            min-height: 50px !important; /* 下のボタンだけ高さを出す */
+            padding: 12px 10px !important;
+            font-size: 1em !important;
+            display: flex !important;
+            align-items: center;
+            justify-content: center;
         }
 
-        /* 各ボタンの配置（ID指定） */
+        /* 3. ご指定の順番配置（ID指定） */
         #downloadBtn      { grid-column: 1 / 3; order: 1; }
         #nextBtn          { grid-column: 1 / 2; order: 2; }
         #prevBtn          { grid-column: 2 / 3; order: 3; }
         #deleteCurrentBtn { grid-column: 1 / 3; order: 4; }
         #downloadAllBtn   { grid-column: 1 / 3; order: 5; }
 
-        /* 全てのボタンの基本設定（「右」のスクショの形を維持する） */
+        /* 4. 全てのボタンの基本設定（「良かった時」の状態に完全復帰） */
         button {
-            padding: 10px 15px; /* ここを控えめにすることで上のボタンが元に戻ります */
             border: none;
             border-radius: 8px;
             font-weight: 600;
@@ -309,7 +311,7 @@
             transition: all 0.3s ease;
             font-family: inherit;
             touch-action: manipulation;
-            /* ここに width: 100% や min-height を書かないのが最大のポイントです */
+            /* width や height をここから消したことで、上のボタンが元のサイズに戻り、ズレも直ります */
         }
 
         /* 各ボタンを指示通りの位置に配置 */
@@ -1743,16 +1745,14 @@
                 deleteCurrentBtn.style.display = 'inline-block';
                 
              // 1724行目付近：ここをまるごと上書きしてください
-            if (currentImageIndex > 0) {
-                // 2枚目以降：普通に表示
+           if (currentImageIndex > 0) {
                 prevBtn.style.visibility = 'visible';
                 prevBtn.disabled = false;
             } else {
-                // 1枚目：透明にして場所だけキープ（これで「次へ」が動かない）
-                prevBtn.style.visibility = 'hidden';
+                prevBtn.style.visibility = 'hidden'; // 透明にして場所を確保
                 prevBtn.disabled = true;
             }
-            // 念のため display が none にならないよう固定
+            // displayを維持することで、グリッドの穴を塞ぎます
             prevBtn.style.display = 'inline-block';
                 
                 currentImageNum.textContent = currentImageIndex + 1;
