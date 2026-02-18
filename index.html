@@ -2098,15 +2098,16 @@
             const scale = nw / window.baseImageWidth;
 
             // すべて整数に丸める
-            const sw = Math.round((window.baseBoxWidth * scale) / zoomLevel);
-            const sh = Math.round((window.baseBoxHeight * scale) / zoomLevel);
+            let sw = Math.round((window.baseBoxWidth * scale) / zoomLevel);
+            let sh = Math.round((window.baseBoxHeight * scale) / zoomLevel);
             const dx = Math.round((imagePanX * scale) / zoomLevel);
             const dy = Math.round((imagePanY * scale) / zoomLevel);
 
-            const sx = Math.round((nw / 2) - (sw / 2) - dx);
-            const sy = Math.round((nh / 2) - (sh / 2) - dy);
+            // 【修正後】縮小（ズームアウト）を許容するため、あえてクリップ（制限）を外します
+            let sx = Math.round((nw / 2) - (sw / 2) - dx);
+            let sy = Math.round((nh / 2) - (sh / 2) - dy);
 
-            console.log(`cropImage: zoom=${zoomLevel.toFixed(2)}, sw=${sw}, sh=${sh}, outW=${outW}, outH=${outH}`);
+            console.log(`cropImage: zoom=${zoomLevel.toFixed(2)}, sw=${sw}, sh=${sh}, sx=${sx}, sy=${sy}, outW=${outW}, outH=${outH}`);
 
             // 背景黒で塗りつぶし
             ctx.fillStyle = "#000000";
