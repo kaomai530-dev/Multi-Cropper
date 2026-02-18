@@ -272,7 +272,8 @@
             margin-top: 10px;
         }
 
-     .controls {
+     /* 下の操作エリア（グリッド配置） */
+        .controls {
             display: grid;
             grid-template-columns: 1fr 1fr; 
             gap: 12px;
@@ -283,33 +284,32 @@
             margin-right: auto;
         }
 
-        /* 下のエリアのボタンだけを大きくする */
+        /* 下の操作エリアのボタン「だけ」を大きくする */
         .controls button {
             width: 100%;
-            padding: 12px 10px;
             min-height: 50px;
+            padding: 12px 10px;
             font-size: 1em;
         }
 
-        /* ボタンの配置場所を指定 */
-        #downloadBtn    { grid-column: 1 / 3; order: 1; }
-        #nextBtn        { grid-column: 1 / 2; order: 2; }
-        #prevBtn        { grid-column: 2 / 3; order: 3; }
+        /* 各ボタンの配置（ID指定） */
+        #downloadBtn      { grid-column: 1 / 3; order: 1; }
+        #nextBtn          { grid-column: 1 / 2; order: 2; }
+        #prevBtn          { grid-column: 2 / 3; order: 3; }
         #deleteCurrentBtn { grid-column: 1 / 3; order: 4; }
-        #downloadAllBtn { grid-column: 1 / 3; order: 5; }
-        /* 共通のボタン設定（もともとあるbuttonの部分） */
+        #downloadAllBtn   { grid-column: 1 / 3; order: 5; }
+
+        /* 全てのボタンの基本設定（「右」のスクショの形を維持する） */
         button {
-            width: 100%;
-            padding: 12px 10px;
+            padding: 10px 15px; /* ここを控えめにすることで上のボタンが元に戻ります */
             border: none;
             border-radius: 8px;
-            font-size: 1em;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.3s ease;
             font-family: inherit;
             touch-action: manipulation;
-            min-height: 50px;
+            /* ここに width: 100% や min-height を書かないのが最大のポイントです */
         }
 
         /* 各ボタンを指示通りの位置に配置 */
