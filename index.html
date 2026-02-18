@@ -1536,6 +1536,11 @@
             
             customCropX = relativeX;
             customCropY = relativeY;
+
+            // ↓これを1行足すだけで、個別の画像設定データも同時に更新され、1回目のズレがなくなります
+            if (currentSettings[currentImageIndex]) {
+                currentSettings[currentImageIndex].customCrop = { x: relativeX, y: relativeY };
+            }
         }
         window.updateCustomCropPosition = updateCustomCropPosition;
 
