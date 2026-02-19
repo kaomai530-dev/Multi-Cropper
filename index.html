@@ -26,6 +26,19 @@
             box-sizing: border-box;
         }
 
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html {
+            width: 100%;
+            overflow-x: hidden;
+            margin: 0;
+            padding: 0;
+        }
+
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', Meiryo, sans-serif;
             background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
@@ -34,8 +47,8 @@
             margin: 0;
             color: #fff;
             overflow-x: hidden;
-            width: 100%;
-            box-sizing: border-box;
+            width: 100vw;
+            max-width: 100%;
             position: relative;
         }
 
@@ -132,7 +145,12 @@
             box-sizing: border-box;
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
             border: 1px solid rgba(255, 255, 255, 0.1);
-            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            min-height: 100vh;
+            padding-top: 40px;
+            padding-bottom: 40px;
         }
 
         h1 {
@@ -2039,16 +2057,13 @@
                     boxWidth = boxHeight * TARGET_RATIO;
                     console.log(`setupCropSelector: Image wider than target (${(ratioDiff*100).toFixed(1)}% diff) - boxH=${boxHeight}, boxW=${boxWidth}`);
                 } else {
-                    // 比率が近い場合：displayWidthをそのままboxWidthに使う
-                    boxWidth = displayWidth;
-                    boxHeight = boxWidth / TARGET_RATIO;
-                    // 1px以上はみ出す場合のみ高さ基準に切り替える
-                    if (boxHeight > displayHeight + 1) {
-                        boxHeight = displayHeight;
-                        boxWidth = boxHeight * TARGET_RATIO;
-                    } else {
-                        // わずかにはみ出す場合はdisplayHeightに合わせる
-                        boxHeight = Math.min(boxHeight, displayHeight);
+                    // 画像が縦長または比率が近い：高さを基準にTARGET_RATIOで幅を計算
+                    boxHeight = displayHeight;
+                    boxWidth = boxHeight * TARGET_RATIO;
+                    // 幅がはみ出す場合は幅を基準に切り替える
+                    if (boxWidth > displayWidth) {
+                        boxWidth = displayWidth;
+                        boxHeight = boxWidth / TARGET_RATIO;
                     }
                     console.log(`setupCropSelector: Image taller/similar to target (${(ratioDiff*100).toFixed(1)}% diff) - boxW=${boxWidth}, boxH=${boxHeight}`);
                 }
@@ -2183,18 +2198,7 @@
             
             console.log(`cropImage: before clamp - sx=${sx}, sy=${sy}, centerX=${centerX}, centerY=${centerY}, offsetL=${offsetLeft}, offsetT=${offsetTop}`);
             
-            // sx/syも範囲内に収める
-            if (hasBlackBarOffset) {
-                // 黒帯カット後：元画像の黒帯を除いた範囲内にクリップ
-                const maxSx = offsetLeft + nw - sw;
-                const maxSy = offsetTop + nh - sh;
-                sx = Math.max(offsetLeft, Math.min(sx, maxSx));
-                sy = Math.max(offsetTop, Math.min(sy, maxSy));
-            } else {
-                // 通常：画像全体の範囲内にクリップ
-                sx = Math.max(0, Math.min(sx, nw - sw));
-                sy = Math.max(0, Math.min(sy, nh - sh));
-            }
+            // sx/syはクリップしない（マイナスやはみ出しOK、黒で塗りつぶす）
             
             console.log(`cropImage: after clamp - sx=${sx}, sy=${sy}, nw=${nw}, nh=${nh}`);
 
@@ -2205,9 +2209,45 @@
             ctx.fillRect(0, 0, canvasW, canvasH);
 
             // 描画（中央配置、zoom考慮）
-            const offsetX = (canvasW - finalOutW) / 2;
-            const offsetY = (canvasH - finalOutH) / 2;
-            ctx.drawImage(sourceImg, sx, sy, sw, sh, offsetX, offsetY, finalOutW, finalOutH);
+            let offsetX = (canvasW - finalOutW) / 2;
+            let offsetY = (canvasH - finalOutH) / 2;
+            
+            // sx/syがマイナスの場合、調整して黒で埋める
+            let drawSx = sx;
+            let drawSy = sy;
+            let drawSw = sw;
+            let drawSh = sh;
+            let drawDx = offsetX;
+            let drawDy = offsetY;
+            let drawDw = finalOutW;
+            let drawDh = finalOutH;
+            
+            if (sx < 0) {
+                const cutLeft = -sx;
+                drawSx = 0;
+                drawSw = sw - cutLeft;
+                drawDx = offsetX + (cutLeft / sw) * finalOutW;
+                drawDw = (drawSw / sw) * finalOutW;
+            }
+            if (sy < 0) {
+                const cutTop = -sy;
+                drawSy = 0;
+                drawSh = sh - cutTop;
+                drawDy = offsetY + (cutTop / sh) * finalOutH;
+                drawDh = (drawSh / sh) * finalOutH;
+            }
+            if (sx + sw > sourceNw) {
+                const cutRight = (sx + sw) - sourceNw;
+                drawSw = sw - cutRight;
+                drawDw = (drawSw / sw) * finalOutW;
+            }
+            if (sy + sh > sourceNh) {
+                const cutBottom = (sy + sh) - sourceNh;
+                drawSh = sh - cutBottom;
+                drawDh = (drawSh / sh) * finalOutH;
+            }
+            
+            ctx.drawImage(sourceImg, drawSx, drawSy, drawSw, drawSh, drawDx, drawDy, drawDw, drawDh);
 
             // タイムスタンプ付きでキャッシュ回避
             preview.src = canvas.toDataURL('image/png') + '#' + new Date().getTime();
