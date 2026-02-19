@@ -272,18 +272,16 @@
             margin-top: 10px;
         }
 
-     .controls {
-            display: grid; /* flexからgridに変更 */
-            grid-template-columns: 1fr 1fr; /* 2列にする */
-            gap: 12px;
+        .controls {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
             margin-top: 20px;
-            max-width: 350px;
-            margin-left: auto;
-            margin-right: auto;
         }
 
         button {
-            padding: 12px 10px; /* 横幅いっぱいに広がるのでpaddingは控えめに */
+            padding: 12px 30px;
             border: none;
             border-radius: 8px;
             font-size: 1em;
@@ -291,16 +289,8 @@
             cursor: pointer;
             transition: all 0.3s ease;
             font-family: inherit;
-            min-height: 50px; /* 下のボタンの押しやすさを確保 */
-            width: 100%; /* グリッド内で幅いっぱいに広がる設定 */
         }
 
-        /* 各ボタンの場所を指定（IDは既存のものを使用） */
-        #downloadBtn      { grid-column: 1 / 3; order: 1; }
-        #nextBtn          { grid-column: 1 / 2; order: 2; }
-        #prevBtn          { grid-column: 2 / 3; order: 3; }
-        #deleteCurrentBtn { grid-column: 1 / 3; order: 4; }
-        #downloadAllBtn   { grid-column: 1 / 3; order: 5; }
         .btn-primary {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
@@ -369,9 +359,7 @@
             max-width: 100%;
             margin-bottom: 20px;
             overflow: hidden;
-            /* ここが重要です */
-            touch-action: none; 
-            -webkit-user-select: none; /* iPhoneでの長押しメニュー防止 */
+            touch-action: none;
             border-radius: 0;
             background: #000;
             padding-right: 2px;
@@ -824,43 +812,49 @@
                 <div class="fine-tune-controls">
                     <div></div>
                     <button class="fine-tune-btn" id="moveUp" onclick="
-                        if (window.currentImage && window.baseImageWidth) {
+                        const selectorImage = document.getElementById('selectorImage');
+                        if (selectorImage && window.baseImageWidth) {
                             // Move by 10 source pixels (approximately 1 display pixel)
-                            const sourcePixelInDisplay = window.baseImageWidth / window.currentImage.width;
+                            const sourcePixelInDisplay = window.baseImageWidth / selectorImage.naturalWidth;
                             window.imagePanY += sourcePixelInDisplay * 10;
                             window.updateImageTransform();
                             window.updateCustomCropPosition();
-                            window.cropImage(window.currentImage);
+                            window.cropImage(selectorImage);
                         }
                     " title="上に移動">↑</button>
                     <div></div>
                     <button class="fine-tune-btn" id="moveLeft" onclick="
-                        if (window.currentImage && window.baseImageWidth) {
-                            const sourcePixelInDisplay = window.baseImageWidth / window.currentImage.width;
+                        const selectorImage = document.getElementById('selectorImage');
+                        if (selectorImage && window.baseImageWidth) {
+                            const sourcePixelInDisplay = window.baseImageWidth / selectorImage.naturalWidth;
                             window.imagePanX += sourcePixelInDisplay * 10;
                             window.updateImageTransform();
                             window.updateCustomCropPosition();
-                            window.cropImage(window.currentImage);
+                            window.cropImage(selectorImage);
                         }
                     " title="左に移動">←</button>
                     <div></div>
                     <button class="fine-tune-btn" id="moveRight" onclick="
-                        if (window.currentImage && window.baseImageWidth) {
-                            const sourcePixelInDisplay = window.baseImageWidth / window.currentImage.width;
+                        const selectorImage = document.getElementById('selectorImage');
+                        if (selectorImage && window.baseImageWidth) {
+                            const sourcePixelInDisplay = window.baseImageWidth / selectorImage.naturalWidth;
                             window.imagePanX -= sourcePixelInDisplay * 10;
                             window.updateImageTransform();
                             window.updateCustomCropPosition();
-                            window.cropImage(window.currentImage);
+                            window.cropImage(selectorImage);
                         }
                     " title="右に移動">→</button>
                     <div></div>
                     <button class="fine-tune-btn" id="moveDown" onclick="
-                        if (window.currentImage && window.baseImageWidth) {
-                            const sourcePixelInDisplay = window.baseImageWidth / window.currentImage.width;
+                        const selectorImage = document.getElementById('selectorImage');
+                        if (selectorImage && window.baseImageWidth) {
+                            console.log('moveDown: before imagePanY=' + window.imagePanY);
+                            const sourcePixelInDisplay = window.baseImageWidth / selectorImage.naturalWidth;
                             window.imagePanY -= sourcePixelInDisplay * 10;
+                            console.log('moveDown: after imagePanY=' + window.imagePanY);
                             window.updateImageTransform();
                             window.updateCustomCropPosition();
-                            window.cropImage(window.currentImage);
+                            window.cropImage(selectorImage);
                         }
                     " title="下に移動">↓</button>
                     <div></div>
@@ -1457,7 +1451,9 @@
         }
 
         function setZoom(newZoom) {
-            zoomLevel = Math.max(0.5, Math.min(3, newZoom));
+            // 黒帯カット後は100%未満を禁止
+            const minZoom = window.blackBarOffset ? 1.0 : 0.5;
+            zoomLevel = Math.max(minZoom, Math.min(3, newZoom));
             window.zoomLevel = zoomLevel;
             zoomLevelDisplay.textContent = Math.round(zoomLevel * 100) + '%';
             updateImageTransform();
@@ -1536,11 +1532,6 @@
             
             customCropX = relativeX;
             customCropY = relativeY;
-
-            // ↓これを1行足すだけで、個別の画像設定データも同時に更新され、1回目のズレがなくなります
-            if (currentSettings[currentImageIndex]) {
-                currentSettings[currentImageIndex].customCrop = { x: relativeX, y: relativeY };
-            }
         }
         window.updateCustomCropPosition = updateCustomCropPosition;
 
@@ -1674,6 +1665,14 @@
             croppedImg.onload = () => {
                 processedImage = croppedImg;
                 detectedCropBounds = { top, bottom, left, right };
+                
+                // Store original image for cropImage to use (for pan calculations)
+                window.originalImage = img;
+                window.originalImageWidth = img.naturalWidth;
+                window.originalImageHeight = img.naturalHeight;
+                window.originalBaseImageWidth = window.baseImageWidth; // Display width before cropping
+                window.blackBarOffset = { top, left }; // Offset from original to cropped
+                
                 currentImage = croppedImg; // Use cropped image as current
                 currentImage.originalFilename = originalFilename; // Preserve original filename
                 setupCropSelector(croppedImg);
@@ -1730,16 +1729,12 @@
                 downloadAllBtn.style.display = 'inline-block';
                 deleteCurrentBtn.style.display = 'inline-block';
                 
-             // 1724行目付近：ここをまるごと上書きしてください
-           if (currentImageIndex > 0) {
-                prevBtn.style.visibility = 'visible';
-                prevBtn.disabled = false;
-            } else {
-                prevBtn.style.visibility = 'hidden'; // 透明にして場所を確保
-                prevBtn.disabled = true;
-            }
-            // displayを維持することで、グリッドの穴を塞ぎます
-            prevBtn.style.display = 'inline-block';
+                // Show prev button only if not on first image
+                if (currentImageIndex > 0) {
+                    prevBtn.style.display = 'inline-block';
+                } else {
+                    prevBtn.style.display = 'none';
+                }
                 
                 currentImageNum.textContent = currentImageIndex + 1;
                 totalImages.textContent = imageQueue.length;
@@ -1748,14 +1743,14 @@
             } else if (imageQueue.length === 1) {
                 // Single image - show delete button but hide others
                 batchProgress.style.display = 'none';
-                prevBtn.style.display = 'none'
+                prevBtn.style.display = 'none';
                 nextBtn.style.display = 'none';
                 deleteCurrentBtn.style.display = 'inline-block';
                 downloadAllBtn.style.display = 'none';
             } else {
                 // No images
                 batchProgress.style.display = 'none';
-                prevBtn.style.display = 'none'
+                prevBtn.style.display = 'none';
                 nextBtn.style.display = 'none';
                 deleteCurrentBtn.style.display = 'none';
                 downloadAllBtn.style.display = 'none';
@@ -2105,38 +2100,115 @@
             const ctx = canvas.getContext('2d');
 
             // Use current TARGET values
-            const outW = TARGET_WIDTH;
-            const outH = TARGET_HEIGHT;
+            const canvasW = TARGET_WIDTH;
+            const canvasH = TARGET_HEIGHT;
+            
+            // Scale output by zoom level
+            const outW = Math.round(TARGET_WIDTH * zoomLevel);
+            const outH = Math.round(TARGET_HEIGHT * zoomLevel);
 
             // Safariキャッシュクリア
             canvas.width = 0;
             canvas.height = 0;
-            canvas.width = outW;
-            canvas.height = outH;
+            canvas.width = canvasW;
+            canvas.height = canvasH;
 
+            // If black bars were removed, use original image for drawing
+            const sourceImg = window.originalImage || img;
+            const sourceNw = sourceImg.naturalWidth || sourceImg.width;
+            const sourceNh = sourceImg.naturalHeight || sourceImg.height;
+            
+            // Cropped image dimensions (after black bar removal)
             const nw = img.naturalWidth || img.width;
             const nh = img.naturalHeight || img.height;
-            const scale = nw / window.baseImageWidth;
+            
+            // If black bars were removed, use original image dimensions for pan calculation
+            const hasBlackBarOffset = window.originalImageWidth && window.blackBarOffset;
+            const panBaseWidth = hasBlackBarOffset ? window.originalImageWidth : sourceNw;
+            const panBaseHeight = hasBlackBarOffset ? window.originalImageHeight : sourceNh;
+            const offsetLeft = hasBlackBarOffset ? window.blackBarOffset.left : 0;
+            const offsetTop = hasBlackBarOffset ? window.blackBarOffset.top : 0;
+            
+            // Scale calculation: use original baseImageWidth if available
+            const baseWidth = hasBlackBarOffset ? (window.originalBaseImageWidth || window.baseImageWidth) : window.baseImageWidth;
+            const scale = panBaseWidth / baseWidth;
+            
+            console.log(`cropImage: img.naturalWidth=${nw}, img.naturalHeight=${nh}, selectorImage.src match=${img.src === selectorImage.src}, hasBlackBarOffset=${hasBlackBarOffset}`);
 
             // すべて整数に丸める
+            // 黒帯カット後は、クロップ後の画像サイズを基準にする
+            const scaleBase = hasBlackBarOffset ? nw : window.baseImageWidth;
             let sw = Math.round((window.baseBoxWidth * scale) / zoomLevel);
             let sh = Math.round((window.baseBoxHeight * scale) / zoomLevel);
+            
+            // 黒帯カット後は、クロップ後のサイズに合わせる
+            if (hasBlackBarOffset) {
+                sw = Math.min(sw, nw);
+                sh = Math.min(sh, nh);
+            }
+            
             const dx = Math.round((imagePanX * scale) / zoomLevel);
             const dy = Math.round((imagePanY * scale) / zoomLevel);
-
-            // 【修正後】縮小（ズームアウト）を許容するため、あえてクリップ（制限）を外します
-            let sx = Math.round((nw / 2) - (sw / 2) - dx);
-            let sy = Math.round((nh / 2) - (sh / 2) - dy);
-
-            console.log(`cropImage: zoom=${zoomLevel.toFixed(2)}, sw=${sw}, sh=${sh}, sx=${sx}, sy=${sy}, outW=${outW}, outH=${outH}`);
-
-            // 背景黒で塗りつぶし
-            ctx.fillStyle = "#000000";
-            ctx.fillRect(0, 0, outW, outH);
-
-           // 【修正後】元画像全体を、計算した位置・サイズで描画（これで余白が生まれます）
-            ctx.drawImage(img, 0, 0, nw, nh, -sx * (outW / sw), -sy * (outH / sh), nw * (outW / sw), nh * (outH / sh));
             
+            console.log(`cropImage: baseBoxW=${window.baseBoxWidth}, scale=${scale.toFixed(2)}, zoom=${zoomLevel}, sw=${sw}, sh=${sh}, dx=${dx}, dy=${dy}`);
+
+            // sw/shがクリップされた場合、出力サイズも調整して比率を保つ
+            const originalSw = sw;
+            const originalSh = sh;
+
+            // sw/shがクリップされた場合、出力サイズも調整して比率を保つ
+            let finalOutW = outW;
+            let finalOutH = outH;
+            if (sw < originalSw || sh < originalSh) {
+                // クリップされた場合、sw/shの比率に合わせて出力サイズを調整
+                const sourceRatio = sw / sh;
+                const targetRatio = outW / outH;
+                
+                if (sourceRatio > targetRatio) {
+                    // ソースの方が横長：幅を基準に
+                    finalOutH = Math.round(outW / sourceRatio);
+                } else {
+                    // ソースの方が縦長：高さを基準に
+                    finalOutW = Math.round(outH * sourceRatio);
+                }
+            }
+
+            // sx/sy計算 - transformと同じ方向にするためdx/dyを引く
+            // 黒帯カット後は、クロップ後の画像の中心を元画像座標系で計算
+            const centerX = hasBlackBarOffset ? (offsetLeft + nw / 2) : (panBaseWidth / 2);
+            const centerY = hasBlackBarOffset ? (offsetTop + nh / 2) : (panBaseHeight / 2);
+            
+            let sx = Math.round(centerX - (sw / 2) - dx);
+            let sy = Math.round(centerY - (sh / 2) - dy);
+            
+            console.log(`cropImage: before clamp - sx=${sx}, sy=${sy}, centerX=${centerX}, centerY=${centerY}, offsetL=${offsetLeft}, offsetT=${offsetTop}`);
+            
+            // sx/syも範囲内に収める
+            if (hasBlackBarOffset) {
+                // 黒帯カット後：元画像の黒帯を除いた範囲内にクリップ
+                const maxSx = offsetLeft + nw - sw;
+                const maxSy = offsetTop + nh - sh;
+                sx = Math.max(offsetLeft, Math.min(sx, maxSx));
+                sy = Math.max(offsetTop, Math.min(sy, maxSy));
+            } else {
+                // 通常：画像全体の範囲内にクリップ
+                sx = Math.max(0, Math.min(sx, nw - sw));
+                sy = Math.max(0, Math.min(sy, nh - sh));
+            }
+            
+            console.log(`cropImage: after clamp - sx=${sx}, sy=${sy}, nw=${nw}, nh=${nh}`);
+
+            console.log(`cropImage: zoom=${zoomLevel.toFixed(2)}, sw=${sw}, sh=${sh}, sx=${sx}, sy=${sy}, outW=${finalOutW}, outH=${finalOutH}`);
+
+            // 背景黒で塗りつぶし（canvas全体）
+            ctx.fillStyle = "#000000";
+            ctx.fillRect(0, 0, canvasW, canvasH);
+
+            // 描画（中央配置、zoom考慮）
+            const offsetX = (canvasW - finalOutW) / 2;
+            const offsetY = (canvasH - finalOutH) / 2;
+            ctx.drawImage(sourceImg, sx, sy, sw, sh, offsetX, offsetY, finalOutW, finalOutH);
+
             // タイムスタンプ付きでキャッシュ回避
             preview.src = canvas.toDataURL('image/png') + '#' + new Date().getTime();
         }
