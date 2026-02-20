@@ -1558,6 +1558,21 @@
             
             customCropX = relativeX;
             customCropY = relativeY;
+
+            // --- ここから追加：プレビュー画面（クロップ後）を調整画面と同期させる ---
+            const previewCanvas = document.getElementById('previewCanvas');
+            const cropperCanvas = document.getElementById('cropperCanvas');
+            
+            if (previewCanvas && cropperCanvas) {
+                // クップ後のサイズを調整画面と完全に一致させる
+                previewCanvas.width = cropperCanvas.width;
+                previewCanvas.height = cropperCanvas.height;
+                
+                const previewCtx = previewCanvas.getContext('2d');
+                // 調整画面の内容をそのままプレビューにコピー（これで見た目が一致します）
+                previewCtx.drawImage(cropperCanvas, 0, 0);
+            }
+            // --- ここまで追加 ---
         }
         window.updateCustomCropPosition = updateCustomCropPosition;
 
