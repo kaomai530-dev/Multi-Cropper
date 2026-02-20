@@ -566,7 +566,7 @@
 
         #croppedPreview {
             border: 1px solid #667eea;
-            width: 311px;
+            width: 309px;
             height: auto;
             border-radius: 0 !important;
             transition: opacity 0.1s ease;
@@ -2122,13 +2122,9 @@
             if (!canvas || !preview) return;
             const ctx = canvas.getContext('2d');
 
-            // Use current TARGET values
-            const canvasW = TARGET_WIDTH;
-            const canvasH = TARGET_HEIGHT;
-            
-            // Scale output by zoom level
-            const outW = Math.round(TARGET_WIDTH * zoomLevel);
-            const outH = Math.round(TARGET_HEIGHT * zoomLevel);
+            // canvasサイズをzoomに応じて変える
+            const canvasW = Math.round(TARGET_WIDTH * zoomLevel);
+            const canvasH = Math.round(TARGET_HEIGHT * zoomLevel);
 
             // Safariキャッシュクリア
             canvas.width = 0;
@@ -2165,111 +2161,60 @@
             let sh = Math.round((window.baseBoxHeight * scale) / zoomLevel);
             
             
-            // sw/shが画像サイズを超えないように制限
-            sw = Math.min(sw, nw);
-            sh = Math.min(sh, nh);
-            
             const dx = Math.round((imagePanX * scale) / zoomLevel);
             const dy = Math.round((imagePanY * scale) / zoomLevel);
             
             console.log(`cropImage: baseBoxW=${window.baseBoxWidth}, scale=${scale.toFixed(2)}, zoom=${zoomLevel}, sw=${sw}, sh=${sh}, dx=${dx}, dy=${dy}`);
 
-            // sw/shがクリップされた場合、出力サイズも調整して比率を保つ
-            const originalSw = sw;
-            const originalSh = sh;
-
-            // sw/shがクリップされた場合、出力サイズも調整して比率を保つ
-            let finalOutW = outW;
-            let finalOutH = outH;
-            if (sw < originalSw || sh < originalSh) {
-                // クリップされた場合、sw/shの比率に合わせて出力サイズを調整
-                const sourceRatio = sw / sh;
-                const targetRatio = outW / outH;
-                
-                if (sourceRatio > targetRatio) {
-                    // ソースの方が横長：幅を基準に
-                    finalOutH = Math.round(outW / sourceRatio);
-                } else {
-                    // ソースの方が縦長：高さを基準に
-                    finalOutW = Math.round(outH * sourceRatio);
-                }
-            } else {
-                // sw/shがcanvasより小さい場合、canvasいっぱいに拡大
-                const sourceRatio = sw / sh;
-                const canvasRatio = canvasW / canvasH;
-                
-                // 常にcanvasサイズに合わせる（微妙な比率の違いは無視）
-                finalOutW = canvasW;
-                finalOutH = canvasH;
-            }
-
-            // sx/sy計算 - transformと同じ方向にするためdx/dyを引く
-            // 黒帯カット後は、クロップ後の画像の中心を元画像座標系で計算
+            // sx/sy計算
             const centerX = hasBlackBarOffset ? (offsetLeft + nw / 2) : (panBaseWidth / 2);
             const centerY = hasBlackBarOffset ? (offsetTop + nh / 2) : (panBaseHeight / 2);
             
             let sx = Math.round(centerX - (sw / 2) - dx);
             let sy = Math.round(centerY - (sh / 2) - dy);
             
-            console.log(`cropImage: before clamp - sx=${sx}, sy=${sy}, centerX=${centerX}, centerY=${centerY}, offsetL=${offsetLeft}, offsetT=${offsetTop}`);
-            
-            // sx/syはクリップしない（マイナスやはみ出しOK、黒で塗りつぶす）
-            
-            console.log(`cropImage: after clamp - sx=${sx}, sy=${sy}, nw=${nw}, nh=${nh}`);
+            console.log(`sx=${sx}, sy=${sy}, centerX=${centerX}, centerY=${centerY}`);
 
-            console.log(`cropImage: zoom=${zoomLevel.toFixed(2)}, sw=${sw}, sh=${sh}, sx=${sx}, sy=${sy}, canvasW=${canvasW}, canvasH=${canvasH}, finalOutW=${finalOutW}, finalOutH=${finalOutH}`);
-
-            // 背景黒で塗りつぶし（canvas全体）
+            // 背景黒で塗りつぶし
             ctx.fillStyle = "#000000";
             ctx.fillRect(0, 0, canvasW, canvasH);
 
-            // 描画（中央配置、zoom考慮）
-            let offsetX = Math.floor((canvasW - finalOutW) / 2);
-            let offsetY = Math.floor((canvasH - finalOutH) / 2);
+            // canvasいっぱいに描画（シンプル）
+            let drawSx = Math.max(0, sx);
+            let drawSy = Math.max(0, sy);
+            let drawSw = Math.min(sw, sourceNw - drawSx);
+            let drawSh = Math.min(sh, sourceNh - drawSy);
             
-            // sx/syがマイナスの場合、調整して黒で埋める
-            let drawSx = sx;
-            let drawSy = sy;
-            let drawSw = sw;
-            let drawSh = sh;
-            let drawDx = offsetX;
-            let drawDy = offsetY;
-            let drawDw = finalOutW;
-            let drawDh = finalOutH;
+            // canvas全体に描画
+            let drawDx = 0;
+            let drawDy = 0;
+            let drawDw = canvasW;
+            let drawDh = canvasH;
             
-            if (sx < 0) {
-                const cutLeft = -sx;
-                drawSx = 0;
-                drawSw = sw - cutLeft;
-                drawDx = Math.floor(offsetX + (cutLeft / sw) * finalOutW);
-                drawDw = Math.round((drawSw / sw) * finalOutW);
-            }
-            if (sy < 0) {
-                const cutTop = -sy;
-                drawSy = 0;
-                drawSh = sh - cutTop;
-                drawDy = Math.floor(offsetY + (cutTop / sh) * finalOutH);
-                drawDh = Math.round((drawSh / sh) * finalOutH);
-            }
-            if (sx + sw > sourceNw) {
-                const cutRight = (sx + sw) - sourceNw;
-                drawSw = sw - cutRight;
-                drawDw = Math.round((drawSw / sw) * finalOutW);
-            }
-            if (sy + sh > sourceNh) {
-                const cutBottom = (sy + sh) - sourceNh;
-                drawSh = sh - cutBottom;
-                drawDh = Math.round((drawSh / sh) * finalOutH);
+            console.log(`BEFORE drawImage: drawSw=${drawSw}, drawSh=${drawSh}, drawDw=${drawDw}, drawDh=${drawDh}`);
+            
+            try {
+                ctx.drawImage(sourceImg, drawSx, drawSy, drawSw, drawSh, drawDx, drawDy, drawDw, drawDh);
+                console.log(`drawImage SUCCESS`);
+            } catch (error) {
+                console.error('drawImage ERROR:', error);
+                console.error('Parameters:', {drawSx, drawSy, drawSw, drawSh, drawDx, drawDy, drawDw, drawDh, canvasW, canvasH});
+                return;
             }
             
-            console.log(`BEFORE drawImage: drawSw=${drawSw}, drawSh=${drawSh}, drawDw=${drawDw}, drawDh=${drawDh}, offsetX=${offsetX}, offsetY=${offsetY}`);
-            
-            ctx.drawImage(sourceImg, drawSx, drawSy, drawSw, drawSh, drawDx, drawDy, drawDw, drawDh);
-            
-            console.log(`drawImage: TARGET=${TARGET_WIDTH}x${TARGET_HEIGHT}, canvas=${canvasW}x${canvasH}, finalOut=${finalOutW}x${finalOutH}, draw=${drawDw}x${drawDh}, drawPos=(${drawDx},${drawDy})`);
+            console.log(`drawImage: canvas=${canvasW}x${canvasH}, draw=${drawDw}x${drawDh}`);
 
             // タイムスタンプ付きでキャッシュ回避
-            preview.src = canvas.toDataURL('image/png') + '#' + new Date().getTime();
+            try {
+                preview.src = canvas.toDataURL('image/png') + '#' + new Date().getTime();
+                console.log('toDataURL SUCCESS');
+            } catch (error) {
+                console.error('toDataURL ERROR:', error);
+                return;
+            }
+            
+            // 表示サイズは固定（フレームライン固定のため）
+            // canvasが小さい場合は黒い余白で表示される
         }
         window.cropImage = cropImage;
 
