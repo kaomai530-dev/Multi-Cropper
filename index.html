@@ -149,7 +149,7 @@
             flex-direction: column;
             justify-content: flex-start;
             min-height: 100vh;
-            padding-top: 20vh;
+            padding-top: 25vh;
             padding-bottom: 40px;
         }
 
@@ -285,14 +285,10 @@
         }
 
         .canvas-container {
-            display: inline-flex;
-            justify-content: center;
-            align-items: center;
-            background: #000;
-            border: 1px solid #667eea;
-            box-sizing: border-box;
-            overflow: hidden;
-            position: relative;
+            display: inline-block;
+            padding: 0;
+            margin: 0;
+            line-height: 0;
         }
 
         .image-info {
@@ -569,14 +565,14 @@
         }
 
         #croppedPreview {
-            max-width: 100%;
-            max-height: 100%;
-            border: none;
+            border: 1px solid #667eea;
+            width: 311px;
+            height: auto;
             border-radius: 0 !important;
             transition: opacity 0.1s ease;
             box-sizing: border-box;
             display: block;
-            background: transparent;
+            background: #000;
         }
 
         .download-modal {
@@ -733,7 +729,6 @@
         @media (max-width: 768px) {
             .container {
                 padding: 20px;
-                padding-top: 20vh;
             }
 
             h1 {
@@ -744,65 +739,10 @@
                 padding: 40px 20px;
             }
         }
-
-        /* iPhone横向き対応 */
-        @media (max-height: 500px) and (orientation: landscape) {
-            .container {
-                padding: 10px;
-                padding-top: 10px;
-                max-width: 100vw;
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-                justify-content: flex-start;
-            }
-
-            h1 {
-                font-size: 1.2em;
-                margin: 10px 0;
-            }
-
-            .upload-area {
-                padding: 20px 10px;
-            }
-
-            .preview-container {
-                padding: 5px 0;
-                margin-bottom: 10px;
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-                width: 100%;
-            }
-
-            /* クロップ範囲を調整を中央配置 */
-            .crop-selector-container {
-                display: block;
-                margin: 0 auto;
-                max-width: 95vw;
-            }
-
-            /* 横向き時は画像を大きく表示（2倍程度） */
-            #selectorImage {
-                max-width: 95vw !important;
-                max-height: 80vh !important;
-                width: auto !important;
-                height: auto !important;
-            }
-
-            .canvas-container {
-                margin: 0 auto;
-            }
-
-            .controls {
-                gap: 5px;
-                flex-wrap: wrap;
-                justify-content: center;
-            }
-
-            button {
-                padding: 8px 12px;
-                font-size: 0.9em;
+        /* 横向き対応 - クロップ範囲を調整を中央配置 */
+        @media (orientation: landscape) and (max-height: 500px) {
+            .interactive-mode {
+                text-align: center;
             }
         }
     </style>
@@ -1043,7 +983,6 @@
         window.imagePanY = 0;
         window.zoomLevel = 1;
         window.isPinching = false;
-        window.isResizing = false; // 画面回転中フラグ
         window.initialPinchDistance = 0;
         window.initialZoom = 1;
         window.autoRemoveBlackBars = false;
@@ -1473,7 +1412,6 @@
             if (!currentImage) return;
             const pixelInDisplay = baseImageWidth / currentImage.width;
             imagePanY += pixelInDisplay;
-            window.imagePanY = imagePanY;
             updateImageTransform();
             updateCustomCropPosition();
             cropImage(currentImage);
@@ -1485,7 +1423,6 @@
             if (!currentImage) return;
             const pixelInDisplay = baseImageWidth / currentImage.width;
             imagePanY -= pixelInDisplay;
-            window.imagePanY = imagePanY;
             updateImageTransform();
             updateCustomCropPosition();
             cropImage(currentImage);
@@ -1494,9 +1431,7 @@
         window.moveLeftFunc = function() {
             if (!currentImage) return;
             const pixelInDisplay = baseImageWidth / currentImage.width;
-            imagePanX -= pixelInDisplay;
-            window.imagePanX = imagePanX;
-            console.log(`moveLeft: imagePanX=${imagePanX}, window.imagePanX=${window.imagePanX}`);
+            imagePanX += pixelInDisplay;
             updateImageTransform();
             updateCustomCropPosition();
             cropImage(currentImage);
@@ -1505,8 +1440,7 @@
         window.moveRightFunc = function() {
             if (!currentImage) return;
             const pixelInDisplay = baseImageWidth / currentImage.width;
-            imagePanX += pixelInDisplay;
-            window.imagePanX = imagePanX;
+            imagePanX -= pixelInDisplay;
             updateImageTransform();
             updateCustomCropPosition();
             cropImage(currentImage);
@@ -2127,21 +2061,22 @@
                 window.baseImageHeight = displayHeight;
                 
                 // 枠のサイズを固定値で決定
+                // cropBoxを画像より1%小さくして、黒みを表示
                 let boxWidth, boxHeight;
                 const ratioDiff = Math.abs(imgRatio - TARGET_RATIO) / TARGET_RATIO;
                 
                 if (imgRatio > TARGET_RATIO && ratioDiff > 0.05) {
                     // 画像が明らかに横長（5%以上差がある）：高さを基準
-                    boxHeight = displayHeight;
+                    boxHeight = displayHeight * 0.99;
                     boxWidth = boxHeight * TARGET_RATIO;
                     console.log(`setupCropSelector: Image wider than target (${(ratioDiff*100).toFixed(1)}% diff) - boxH=${boxHeight}, boxW=${boxWidth}`);
                 } else {
                     // 画像が縦長または比率が近い：高さを基準にTARGET_RATIOで幅を計算
-                    boxHeight = displayHeight;
+                    boxHeight = displayHeight * 0.99;
                     boxWidth = boxHeight * TARGET_RATIO;
                     // 幅がはみ出す場合は幅を基準に切り替える
-                    if (boxWidth > displayWidth) {
-                        boxWidth = displayWidth;
+                    if (boxWidth > displayWidth * 0.99) {
+                        boxWidth = displayWidth * 0.99;
                         boxHeight = boxWidth / TARGET_RATIO;
                     }
                     console.log(`setupCropSelector: Image taller/similar to target (${(ratioDiff*100).toFixed(1)}% diff) - boxW=${boxWidth}, boxH=${boxHeight}`);
@@ -2161,18 +2096,15 @@
                 const boxTop = (containerRect.height - boxHeight) / 2;
                 cropBox.style.left = boxLeft + 'px';
                 cropBox.style.top = boxTop + 'px';
-                console.log(`cropBox position: left=${boxLeft}, top=${boxTop}, width=${boxWidth}, height=${boxHeight}, containerW=${containerRect.width}, containerH=${containerRect.height}`);
+                console.log(`cropBox position: left=${boxLeft}, top=${boxTop}, containerW=${containerRect.width}, containerH=${containerRect.height}`);
                 
-                // 画面回転中でない場合のみリセット
-                if (!window.isResizing) {
-                    zoomLevel = 1;
-                    imagePanX = 0;
-                    imagePanY = 0;
-                    window.zoomLevel = 1;
-                    window.imagePanX = 0;
-                    window.imagePanY = 0;
-                    selectorImage.style.transform = 'translate(0px, 0px) scale(1)';
-                }
+                zoomLevel = 1;
+                imagePanX = 0;
+                imagePanY = 0;
+                window.zoomLevel = 1;
+                window.imagePanX = 0;
+                window.imagePanY = 0;
+                selectorImage.style.transform = 'translate(0px, 0px) scale(1)';
                 
                 updateCustomCropPosition();
                 
@@ -2191,15 +2123,24 @@
             
             console.log(`cropImage: START - baseBoxW=${window.baseBoxWidth}, baseBoxH=${window.baseBoxHeight}, baseImageW=${window.baseImageWidth}, TARGET_WIDTH=${TARGET_WIDTH}, TARGET_HEIGHT=${TARGET_HEIGHT}`);
             
-            // Load pan values from window
-            const imagePanX = window.imagePanX || 0;
-            const imagePanY = window.imagePanY || 0;
-            const zoomLevel = window.zoomLevel || 1;
-            
             const canvas = croppedCanvas;
             const preview = croppedPreview;
             if (!canvas || !preview) return;
             const ctx = canvas.getContext('2d');
+
+            // Use current TARGET values
+            const canvasW = TARGET_WIDTH;
+            const canvasH = TARGET_HEIGHT;
+            
+            // Scale output by zoom level
+            const outW = Math.round(TARGET_WIDTH * zoomLevel);
+            const outH = Math.round(TARGET_HEIGHT * zoomLevel);
+
+            // Safariキャッシュクリア
+            canvas.width = 0;
+            canvas.height = 0;
+            canvas.width = canvasW;
+            canvas.height = canvasH;
 
             // If black bars were removed, use original image for drawing
             const sourceImg = window.originalImage || img;
@@ -2223,17 +2164,6 @@
             
             console.log(`cropImage: img.naturalWidth=${nw}, img.naturalHeight=${nh}, selectorImage.src match=${img.src === selectorImage.src}, hasBlackBarOffset=${hasBlackBarOffset}`);
 
-            // canvasサイズをbaseBox × scale × zoomで計算
-            // これによりpreviewサイズと比率が一致する
-            const canvasW = Math.round(window.baseBoxWidth * scale * zoomLevel);
-            const canvasH = Math.round(window.baseBoxHeight * scale * zoomLevel);
-
-            // Safariキャッシュクリア
-            canvas.width = 0;
-            canvas.height = 0;
-            canvas.width = canvasW;
-            canvas.height = canvasH;
-
             // すべて整数に丸める
             // 黒帯カット後は、クロップ後の画像サイズを基準にする
             const scaleBase = hasBlackBarOffset ? nw : window.baseImageWidth;
@@ -2241,154 +2171,113 @@
             let sh = Math.round((window.baseBoxHeight * scale) / zoomLevel);
             
             
+            // sw/shが画像サイズを超えないように制限
+            sw = Math.min(sw, nw);
+            sh = Math.min(sh, nh);
+            
             const dx = Math.round((imagePanX * scale) / zoomLevel);
             const dy = Math.round((imagePanY * scale) / zoomLevel);
             
             console.log(`cropImage: baseBoxW=${window.baseBoxWidth}, scale=${scale.toFixed(2)}, zoom=${zoomLevel}, sw=${sw}, sh=${sh}, dx=${dx}, dy=${dy}`);
 
-            // sx/sy計算
+            // sw/shがクリップされた場合、出力サイズも調整して比率を保つ
+            const originalSw = sw;
+            const originalSh = sh;
+
+            // sw/shがクリップされた場合、出力サイズも調整して比率を保つ
+            let finalOutW = outW;
+            let finalOutH = outH;
+            if (sw < originalSw || sh < originalSh) {
+                // クリップされた場合、sw/shの比率に合わせて出力サイズを調整
+                const sourceRatio = sw / sh;
+                const targetRatio = outW / outH;
+                
+                if (sourceRatio > targetRatio) {
+                    // ソースの方が横長：幅を基準に
+                    finalOutH = Math.round(outW / sourceRatio);
+                } else {
+                    // ソースの方が縦長：高さを基準に
+                    finalOutW = Math.round(outH * sourceRatio);
+                }
+            } else {
+                // sw/shがcanvasより小さい場合、canvasいっぱいに拡大
+                const sourceRatio = sw / sh;
+                const canvasRatio = canvasW / canvasH;
+                
+                // 常にcanvasサイズに合わせる（微妙な比率の違いは無視）
+                finalOutW = canvasW;
+                finalOutH = canvasH;
+            }
+
+            // sx/sy計算 - transformと同じ方向にするためdx/dyを引く
+            // 黒帯カット後は、クロップ後の画像の中心を元画像座標系で計算
             const centerX = hasBlackBarOffset ? (offsetLeft + nw / 2) : (panBaseWidth / 2);
             const centerY = hasBlackBarOffset ? (offsetTop + nh / 2) : (panBaseHeight / 2);
             
             let sx = Math.round(centerX - (sw / 2) - dx);
             let sy = Math.round(centerY - (sh / 2) - dy);
             
-            console.log(`sx=${sx}, sy=${sy}, centerX=${centerX}, centerY=${centerY}`);
+            console.log(`cropImage: before clamp - sx=${sx}, sy=${sy}, centerX=${centerX}, centerY=${centerY}, offsetL=${offsetLeft}, offsetT=${offsetTop}`);
+            
+            // sx/syはクリップしない（マイナスやはみ出しOK、黒で塗りつぶす）
+            
+            console.log(`cropImage: after clamp - sx=${sx}, sy=${sy}, nw=${nw}, nh=${nh}`);
 
-            // 背景黒で塗りつぶし
+            console.log(`cropImage: zoom=${zoomLevel.toFixed(2)}, sw=${sw}, sh=${sh}, sx=${sx}, sy=${sy}, canvasW=${canvasW}, canvasH=${canvasH}, finalOutW=${finalOutW}, finalOutH=${finalOutH}`);
+
+            // 背景黒で塗りつぶし（canvas全体）
             ctx.fillStyle = "#000000";
             ctx.fillRect(0, 0, canvasW, canvasH);
 
-            // canvasいっぱいに描画（シンプル）
-            let drawSx = Math.max(0, sx);
-            let drawSy = Math.max(0, sy);
+            // 描画（中央配置、zoom考慮）
+            let offsetX = Math.floor((canvasW - finalOutW) / 2);
+            let offsetY = Math.floor((canvasH - finalOutH) / 2);
             
-            // sx/sy < 0の場合、swからカットした分を引く
+            // sx/syがマイナスの場合、調整して黒で埋める
+            let drawSx = sx;
+            let drawSy = sy;
             let drawSw = sw;
             let drawSh = sh;
+            let drawDx = offsetX;
+            let drawDy = offsetY;
+            let drawDw = finalOutW;
+            let drawDh = finalOutH;
+            
             if (sx < 0) {
-                drawSw = sw + sx; // sx=-10なら、sw-10
+                const cutLeft = -sx;
+                drawSx = 0;
+                drawSw = sw - cutLeft;
+                drawDx = Math.floor(offsetX + (cutLeft / sw) * finalOutW);
+                drawDw = Math.round((drawSw / sw) * finalOutW);
             }
             if (sy < 0) {
-                drawSh = sh + sy;
+                const cutTop = -sy;
+                drawSy = 0;
+                drawSh = sh - cutTop;
+                drawDy = Math.floor(offsetY + (cutTop / sh) * finalOutH);
+                drawDh = Math.round((drawSh / sh) * finalOutH);
+            }
+            if (sx + sw > sourceNw) {
+                const cutRight = (sx + sw) - sourceNw;
+                drawSw = sw - cutRight;
+                drawDw = Math.round((drawSw / sw) * finalOutW);
+            }
+            if (sy + sh > sourceNh) {
+                const cutBottom = (sy + sh) - sourceNh;
+                drawSh = sh - cutBottom;
+                drawDh = Math.round((drawSh / sh) * finalOutH);
             }
             
-            // 画像サイズを超えないように制限
-            drawSw = Math.min(drawSw, sourceNw - drawSx);
-            drawSh = Math.min(drawSh, sourceNh - drawSy);
+            console.log(`BEFORE drawImage: drawSw=${drawSw}, drawSh=${drawSh}, drawDw=${drawDw}, drawDh=${drawDh}, offsetX=${offsetX}, offsetY=${offsetY}`);
             
-            // drawDw/drawDhをdrawSw/drawShに合わせて調整
-            // swからdrawSwへの縮小率を適用
-            const widthRatio = drawSw / sw;
-            const heightRatio = drawSh / sh;
+            ctx.drawImage(sourceImg, drawSx, drawSy, drawSw, drawSh, drawDx, drawDy, drawDw, drawDh);
             
-            let drawDw = Math.round(canvasW * widthRatio);
-            let drawDh = Math.round(canvasH * heightRatio);
-            
-            // 描画位置（はみ出した部分に応じて調整）
-            let drawDx = 0;
-            let drawDy = 0;
-            
-            // sx < 0: 左がはみ出す → 画像を右にずらす
-            if (sx < 0) {
-                const cutPixels = -sx; // はみ出したピクセル数
-                drawDx = Math.round((cutPixels / sw) * canvasW);
-            }
-            // sy < 0: 上がはみ出す → 画像を下にずらす
-            if (sy < 0) {
-                const cutPixels = -sy;
-                drawDy = Math.round((cutPixels / sh) * canvasH);
-            }
-            
-            console.log(`BEFORE drawImage: drawSw=${drawSw}, drawSh=${drawSh}, drawDw=${drawDw}, drawDh=${drawDh}`);
-            
-            try {
-                ctx.drawImage(sourceImg, drawSx, drawSy, drawSw, drawSh, drawDx, drawDy, drawDw, drawDh);
-                console.log(`drawImage SUCCESS`);
-            } catch (error) {
-                console.error('drawImage ERROR:', error);
-                console.error('Parameters:', {drawSx, drawSy, drawSw, drawSh, drawDx, drawDy, drawDw, drawDh, canvasW, canvasH});
-                return;
-            }
-            
-            console.log(`drawImage: canvas=${canvasW}x${canvasH}, draw=${drawDw}x${drawDh}`);
+            console.log(`drawImage: TARGET=${TARGET_WIDTH}x${TARGET_HEIGHT}, canvas=${canvasW}x${canvasH}, finalOut=${finalOutW}x${finalOutH}, draw=${drawDw}x${drawDh}, drawPos=(${drawDx},${drawDy})`);
 
             // タイムスタンプ付きでキャッシュ回避
-            try {
-                preview.src = canvas.toDataURL('image/png') + '#' + new Date().getTime();
-                console.log('toDataURL SUCCESS');
-            } catch (error) {
-                console.error('toDataURL ERROR:', error);
-                return;
-            }
-            
-            // コンテナとプレビューのサイズを設定
-            const container = preview.parentElement;
-            if (container) {
-                container.style.width = window.baseBoxWidth + 'px';
-                container.style.height = window.baseBoxHeight + 'px';
-                console.log(`container size: ${window.baseBoxWidth}px x ${window.baseBoxHeight}px`);
-            }
-            
-            // previewサイズをcanvasの実サイズに合わせて計算
-            // baseBoxWidthに収まるようにスケール
-            const displayScale = window.baseBoxWidth / canvasW;
-            const previewW = canvasW * displayScale;
-            const previewH = canvasH * displayScale;
-            
-            preview.style.width = previewW + 'px';
-            preview.style.height = previewH + 'px';
-            console.log(`preview size: ${previewW}px x ${previewH}px, canvas: ${canvasW}x${canvasH}`);
+            preview.src = canvas.toDataURL('image/png') + '#' + new Date().getTime();
         }
         window.cropImage = cropImage;
-
-        // 画面回転時に画像サイズを調整（パン位置は保持）
-        function resizeImageForOrientation() {
-            if (!currentImage) return;
-            
-            // 現在のパン位置とズームを保存
-            const savedPanX = window.imagePanX || 0;
-            const savedPanY = window.imagePanY || 0;
-            const savedZoom = window.zoomLevel || 1;
-            
-            // リサイズ中フラグを立てる
-            window.isResizing = true;
-            
-            // setupCropSelectorを再実行（これでサイズが再計算される）
-            setupCropSelector(currentImage);
-            
-            // 即座にパン位置を復元（setupCropSelectorでリセットされるため）
-            window.imagePanX = savedPanX;
-            window.imagePanY = savedPanY;
-            window.zoomLevel = savedZoom;
-            imagePanX = savedPanX;
-            imagePanY = savedPanY;
-            zoomLevel = savedZoom;
-            
-            // transformとcropを更新
-            setTimeout(() => {
-                updateImageTransform();
-                cropImage(currentImage);
-                // フラグを解除
-                window.isResizing = false;
-            }, 50);
-        }
-
-        // 画面回転時に画像サイズを調整
-        window.addEventListener('orientationchange', () => {
-            setTimeout(() => {
-                resizeImageForOrientation();
-            }, 200);
-        });
-
-        // リサイズ時も調整
-        let resizeTimer;
-        window.addEventListener('resize', () => {
-            clearTimeout(resizeTimer);
-            resizeTimer = setTimeout(() => {
-                resizeImageForOrientation();
-            }, 300);
-        });
 
         // Download - Show modal with image
         downloadBtn.addEventListener('click', () => {
