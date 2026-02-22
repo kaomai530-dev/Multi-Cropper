@@ -149,12 +149,11 @@
             flex-direction: column;
             justify-content: flex-start;
             min-height: 100vh;
-            padding-top: 50vh;
-            padding-bottom: 40px;
         }
 
         h1 {
             text-align: center;
+            margin-top: 25vh;
             margin-bottom: 10px;
             font-size: 2em;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -2061,31 +2060,28 @@
                 window.baseImageHeight = displayHeight;
                 
                 // 枠のサイズを固定値で決定
-                // cropBoxを画像より1%小さくして、黒みを表示
                 let boxWidth, boxHeight;
                 const ratioDiff = Math.abs(imgRatio - TARGET_RATIO) / TARGET_RATIO;
                 
                 if (imgRatio > TARGET_RATIO && ratioDiff > 0.05) {
                     // 画像が明らかに横長（5%以上差がある）：高さを基準
-                    boxHeight = displayHeight * 0.99;
+                    boxHeight = displayHeight;
                     boxWidth = boxHeight * TARGET_RATIO;
                     console.log(`setupCropSelector: Image wider than target (${(ratioDiff*100).toFixed(1)}% diff) - boxH=${boxHeight}, boxW=${boxWidth}`);
                 } else {
                     // 画像が縦長または比率が近い：高さを基準にTARGET_RATIOで幅を計算
-                    boxHeight = displayHeight * 0.99;
+                    boxHeight = displayHeight;
                     boxWidth = boxHeight * TARGET_RATIO;
                     // 幅がはみ出す場合は幅を基準に切り替える
-                    if (boxWidth > displayWidth * 0.99) {
-                        boxWidth = displayWidth * 0.99;
+                    if (boxWidth > displayWidth) {
+                        boxWidth = displayWidth;
                         boxHeight = boxWidth / TARGET_RATIO;
                     }
                     console.log(`setupCropSelector: Image taller/similar to target (${(ratioDiff*100).toFixed(1)}% diff) - boxW=${boxWidth}, boxH=${boxHeight}`);
                 }
                 
-                // baseBoxWidthは元画像サイズを使用
-                // baseBoxHeightはcropBoxの比率を維持
-                window.baseBoxWidth = displayWidth;
-                window.baseBoxHeight = displayWidth / (boxWidth / boxHeight);
+                window.baseBoxWidth = boxWidth;
+                window.baseBoxHeight = boxHeight;
                 
                 // インラインスタイルでサイズを固定
                 selectorImage.style.width = displayWidth + 'px';
