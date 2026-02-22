@@ -149,7 +149,7 @@
             flex-direction: column;
             justify-content: flex-start;
             min-height: 100vh;
-            padding-top: 25vh;
+            padding-top: 50vh;
             padding-bottom: 40px;
         }
 
@@ -2082,8 +2082,10 @@
                     console.log(`setupCropSelector: Image taller/similar to target (${(ratioDiff*100).toFixed(1)}% diff) - boxW=${boxWidth}, boxH=${boxHeight}`);
                 }
                 
-                window.baseBoxWidth = boxWidth;
-                window.baseBoxHeight = boxHeight;
+                // baseBoxWidthは元画像サイズを使用
+                // baseBoxHeightはcropBoxの比率を維持
+                window.baseBoxWidth = displayWidth;
+                window.baseBoxHeight = displayWidth / (boxWidth / boxHeight);
                 
                 // インラインスタイルでサイズを固定
                 selectorImage.style.width = displayWidth + 'px';
