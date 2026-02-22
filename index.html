@@ -2274,6 +2274,13 @@
 
             // タイムスタンプ付きでキャッシュ回避
             preview.src = canvas.toDataURL('image/png') + '#' + new Date().getTime();
+            
+            // canvas-containerのサイズを設定（cropBoxと同じサイズ）
+            const container = preview.parentElement;
+            if (container) {
+                container.style.width = window.baseBoxWidth + 'px';
+                container.style.height = window.baseBoxHeight + 'px';
+            }
         }
         window.cropImage = cropImage;
 
