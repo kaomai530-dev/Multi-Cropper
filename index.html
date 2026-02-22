@@ -895,7 +895,7 @@
                 <div class="preview-label" id="croppedLabel">クロップ後（1920×817）</div>
                 <div class="canvas-container">
                     <img id="croppedPreview" alt="Cropped">
-                    <canvas id="croppedCanvas" style="display:none;"></canvas>
+                    <canvas id="croppedCanvas" style="visibility:hidden;"></canvas>
                 </div>
                 <div class="image-info" id="ratioInfo">アスペクト比: 2.35:1 (Cinemascope)</div>
                 <div class="download-hint">💡 画像を長押しして「写真に追加」で保存できます</div>
@@ -905,16 +905,16 @@
                 <button class="btn-primary" id="downloadBtn">
                     💾 この画像を保存
                 </button>
-                <button class="btn-secondary" id="prevBtn" style="display:none;">
+                <button class="btn-secondary" id="prevBtn" style="visibility:hidden;">
                     ⏮️ 前の画像
                 </button>
-                <button class="btn-secondary" id="nextBtn" style="display:none;">
+                <button class="btn-secondary" id="nextBtn" style="visibility:hidden;">
                     ⏭️ 次の画像
                 </button>
-                <button class="btn-secondary" id="deleteCurrentBtn" style="display:none;">
+                <button class="btn-secondary" id="deleteCurrentBtn" style="visibility:hidden;">
                     🗑️ この画像を削除
                 </button>
-                <button class="btn-secondary" id="downloadAllBtn" style="display:none;">
+                <button class="btn-secondary" id="downloadAllBtn" style="visibility:hidden;">
                     📦 全て一括保存
                 </button>
                 <button class="btn-secondary" id="resetBtn">
@@ -922,7 +922,7 @@
                 </button>
             </div>
             
-            <div class="batch-progress" id="batchProgress" style="display:none;">
+            <div class="batch-progress" id="batchProgress" style="visibility:hidden;">
                 <div class="progress-text">
                     <span id="currentImageNum">1</span> / <span id="totalImages">1</span> 枚
                 </div>
@@ -1755,15 +1755,15 @@
         function updateBatchUI() {
             if (imageQueue.length > 1) {
                 batchProgress.style.display = 'block';
-                nextBtn.style.display = 'inline-block';
-                downloadAllBtn.style.display = 'inline-block';
-                deleteCurrentBtn.style.display = 'inline-block';
+                nextBtn.style.visibility = 'visible';
+                downloadAllBtn.style.visibility = 'visible';
+                deleteCurrentBtn.style.visibility = 'visible';
                 
                 // Show prev button only if not on first image
                 if (currentImageIndex > 0) {
-                    prevBtn.style.display = 'inline-block';
+                    prevBtn.style.visibility = 'visible';
                 } else {
-                    prevBtn.style.display = 'none';
+                    prevBtn.style.visibility = 'hidden';
                 }
                 
                 currentImageNum.textContent = currentImageIndex + 1;
@@ -1773,17 +1773,17 @@
             } else if (imageQueue.length === 1) {
                 // Single image - show delete button but hide others
                 batchProgress.style.display = 'none';
-                prevBtn.style.display = 'none';
-                nextBtn.style.display = 'none';
-                deleteCurrentBtn.style.display = 'inline-block';
-                downloadAllBtn.style.display = 'none';
+                prevBtn.style.visibility = 'hidden';
+                nextBtn.style.visibility = 'hidden';
+                deleteCurrentBtn.style.visibility = 'visible';
+                downloadAllBtn.style.visibility = 'hidden';
             } else {
                 // No images
                 batchProgress.style.display = 'none';
-                prevBtn.style.display = 'none';
-                nextBtn.style.display = 'none';
-                deleteCurrentBtn.style.display = 'none';
-                downloadAllBtn.style.display = 'none';
+                prevBtn.style.visibility = 'hidden';
+                nextBtn.style.visibility = 'hidden';
+                deleteCurrentBtn.style.visibility = 'hidden';
+                downloadAllBtn.style.visibility = 'hidden';
             }
         }
 
