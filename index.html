@@ -272,7 +272,7 @@
         .preview-container {
             background: transparent;
             border-radius: 10px;
-            padding: 0;
+            padding: 10px 0;
             margin-bottom: 20px;
             text-align: center;
             display: flex;
@@ -2280,17 +2280,9 @@
             // タイムスタンプ付きでキャッシュ回避
             preview.src = canvas.toDataURL('image/png') + '#' + new Date().getTime();
             
-            // previewとcontainerのサイズと中央配置を設定
+            // previewのサイズを設定
             preview.style.width = window.baseBoxWidth + 'px';
             preview.style.height = window.baseBoxHeight + 'px';
-            preview.style.display = 'block';
-            preview.style.margin = '0 auto';
-            
-            const container = preview.parentElement;
-            if (container) {
-                container.style.display = 'block';
-                container.style.margin = '0 auto';
-            }
         }
         window.cropImage = cropImage;
 
