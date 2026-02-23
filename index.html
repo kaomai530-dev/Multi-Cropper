@@ -149,11 +149,12 @@
             flex-direction: column;
             justify-content: flex-start;
             min-height: 100vh;
+            padding-top: 20vh;
+            padding-bottom: 40px;
         }
 
         h1 {
             text-align: center;
-            margin-top: 25vh;
             margin-bottom: 10px;
             font-size: 2em;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -275,9 +276,6 @@
             padding: 10px 0;
             margin-bottom: 20px;
             text-align: center;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
         }
 
         .preview-label {
@@ -289,7 +287,7 @@
         .canvas-container {
             display: inline-block;
             padding: 0;
-            margin: 0 auto;
+            margin: 0;
             line-height: 0;
         }
 
@@ -568,6 +566,7 @@
 
         #croppedPreview {
             border: 1px solid #667eea;
+            max-width: 100%;
             height: auto;
             border-radius: 0 !important;
             transition: opacity 0.1s ease;
@@ -730,6 +729,7 @@
         @media (max-width: 768px) {
             .container {
                 padding: 20px;
+                padding-top: 20vh;
             }
 
             h1 {
@@ -738,12 +738,6 @@
 
             .upload-area {
                 padding: 40px 20px;
-            }
-        }
-        /* 横向き対応 - クロップ範囲を調整を中央配置 */
-        @media (orientation: landscape) and (max-height: 500px) {
-            .interactive-mode {
-                text-align: center;
             }
         }
     </style>
@@ -897,7 +891,7 @@
                 <div class="preview-label" id="croppedLabel">クロップ後（1920×817）</div>
                 <div class="canvas-container">
                     <img id="croppedPreview" alt="Cropped">
-                    <canvas id="croppedCanvas" style="visibility:hidden;"></canvas>
+                    <canvas id="croppedCanvas" style="display:none;"></canvas>
                 </div>
                 <div class="image-info" id="ratioInfo">アスペクト比: 2.35:1 (Cinemascope)</div>
                 <div class="download-hint">💡 画像を長押しして「写真に追加」で保存できます</div>
@@ -907,16 +901,16 @@
                 <button class="btn-primary" id="downloadBtn">
                     💾 この画像を保存
                 </button>
-                <button class="btn-secondary" id="prevBtn" style="visibility:hidden;">
+                <button class="btn-secondary" id="prevBtn" style="display:none;">
                     ⏮️ 前の画像
                 </button>
-                <button class="btn-secondary" id="nextBtn" style="visibility:hidden;">
+                <button class="btn-secondary" id="nextBtn" style="display:none;">
                     ⏭️ 次の画像
                 </button>
-                <button class="btn-secondary" id="deleteCurrentBtn" style="visibility:hidden;">
+                <button class="btn-secondary" id="deleteCurrentBtn" style="display:none;">
                     🗑️ この画像を削除
                 </button>
-                <button class="btn-secondary" id="downloadAllBtn" style="visibility:hidden;">
+                <button class="btn-secondary" id="downloadAllBtn" style="display:none;">
                     📦 全て一括保存
                 </button>
                 <button class="btn-secondary" id="resetBtn">
@@ -924,7 +918,7 @@
                 </button>
             </div>
             
-            <div class="batch-progress" id="batchProgress" style="visibility:hidden;">
+            <div class="batch-progress" id="batchProgress" style="display:none;">
                 <div class="progress-text">
                     <span id="currentImageNum">1</span> / <span id="totalImages">1</span> 枚
                 </div>
@@ -984,6 +978,7 @@
         window.imagePanY = 0;
         window.zoomLevel = 1;
         window.isPinching = false;
+        window.isResizing = false; // 画面回転中フラグ
         window.initialPinchDistance = 0;
         window.initialZoom = 1;
         window.autoRemoveBlackBars = false;
@@ -1739,9 +1734,6 @@
                     }
                     previewSection.style.display = 'block';
                     interactiveMode.style.display = 'block';
-                    // h1のmargin-topをリセット（トップ画面用のスペースを削除）
-                    const h1 = document.querySelector('h1');
-                    if (h1) h1.style.marginTop = '10px';
                     updateBatchUI();
                 };
                 img.src = e.target.result;
@@ -1760,15 +1752,15 @@
         function updateBatchUI() {
             if (imageQueue.length > 1) {
                 batchProgress.style.display = 'block';
-                nextBtn.style.visibility = 'visible';
-                downloadAllBtn.style.visibility = 'visible';
-                deleteCurrentBtn.style.visibility = 'visible';
+                nextBtn.style.display = 'inline-block';
+                downloadAllBtn.style.display = 'inline-block';
+                deleteCurrentBtn.style.display = 'inline-block';
                 
                 // Show prev button only if not on first image
                 if (currentImageIndex > 0) {
-                    prevBtn.style.visibility = 'visible';
+                    prevBtn.style.display = 'inline-block';
                 } else {
-                    prevBtn.style.visibility = 'hidden';
+                    prevBtn.style.display = 'none';
                 }
                 
                 currentImageNum.textContent = currentImageIndex + 1;
@@ -1778,17 +1770,17 @@
             } else if (imageQueue.length === 1) {
                 // Single image - show delete button but hide others
                 batchProgress.style.display = 'none';
-                prevBtn.style.visibility = 'hidden';
-                nextBtn.style.visibility = 'hidden';
-                deleteCurrentBtn.style.visibility = 'visible';
-                downloadAllBtn.style.visibility = 'hidden';
+                prevBtn.style.display = 'none';
+                nextBtn.style.display = 'none';
+                deleteCurrentBtn.style.display = 'inline-block';
+                downloadAllBtn.style.display = 'none';
             } else {
                 // No images
                 batchProgress.style.display = 'none';
-                prevBtn.style.visibility = 'hidden';
-                nextBtn.style.visibility = 'hidden';
-                deleteCurrentBtn.style.visibility = 'hidden';
-                downloadAllBtn.style.visibility = 'hidden';
+                prevBtn.style.display = 'none';
+                nextBtn.style.display = 'none';
+                deleteCurrentBtn.style.display = 'none';
+                downloadAllBtn.style.display = 'none';
             }
         }
 
@@ -2101,13 +2093,16 @@
                 cropBox.style.top = boxTop + 'px';
                 console.log(`cropBox position: left=${boxLeft}, top=${boxTop}, containerW=${containerRect.width}, containerH=${containerRect.height}`);
                 
-                zoomLevel = 1;
-                imagePanX = 0;
-                imagePanY = 0;
-                window.zoomLevel = 1;
-                window.imagePanX = 0;
-                window.imagePanY = 0;
-                selectorImage.style.transform = 'translate(0px, 0px) scale(1)';
+                // 画面回転中でない場合のみリセット
+                if (!window.isResizing) {
+                    zoomLevel = 1;
+                    imagePanX = 0;
+                    imagePanY = 0;
+                    window.zoomLevel = 1;
+                    window.imagePanX = 0;
+                    window.imagePanY = 0;
+                    selectorImage.style.transform = 'translate(0px, 0px) scale(1)';
+                }
                 
                 updateCustomCropPosition();
                 
@@ -2118,6 +2113,46 @@
 
         // Crop image
         // Crop image  
+        // 画面回転時に画像サイズを調整（パン位置は保持）
+        function resizeImageForOrientation() {
+            if (!currentImage) return;
+            
+            // 現在のパン位置をピクセル値で保存
+            const savedPanX = window.imagePanX || 0;
+            const savedPanY = window.imagePanY || 0;
+            const savedZoom = window.zoomLevel || 1;
+            
+            console.log(`Resize start: panX=${savedPanX}, panY=${savedPanY}`);
+            
+            // リサイズ中フラグを立てる
+            window.isResizing = true;
+            
+            // setupCropSelectorを再実行（これでサイズが再計算される）
+            setupCropSelector(currentImage);
+            
+            // パン位置を復元
+            window.imagePanX = savedPanX;
+            window.imagePanY = savedPanY;
+            window.zoomLevel = savedZoom;
+            
+            console.log(`Resize restore: panX=${savedPanX}, panY=${savedPanY}`);
+            
+            setTimeout(() => {
+                updateImageTransform();
+                updateCustomCropPosition();
+                cropImage(currentImage);
+                
+                // フラグを解除
+                window.isResizing = false;
+                console.log('Resize complete');
+            }, 150);
+        }
+        
+        // 画面回転時のイベントリスナー
+        window.addEventListener('orientationchange', () => {
+            setTimeout(() => resizeImageForOrientation(), 200);
+        });
+        
         function cropImage(img) {
             if (!img || !window.baseImageWidth || !window.baseBoxWidth) {
                 console.log(`cropImage: SKIP - img=${!!img}, baseImageWidth=${window.baseImageWidth}, baseBoxWidth=${window.baseBoxWidth}`);
@@ -2138,12 +2173,6 @@
             // Scale output by zoom level
             const outW = Math.round(TARGET_WIDTH * zoomLevel);
             const outH = Math.round(TARGET_HEIGHT * zoomLevel);
-
-            // Safariキャッシュクリア
-            canvas.width = 0;
-            canvas.height = 0;
-            canvas.width = canvasW;
-            canvas.height = canvasH;
 
             // If black bars were removed, use original image for drawing
             const sourceImg = window.originalImage || img;
@@ -2174,9 +2203,11 @@
             let sh = Math.round((window.baseBoxHeight * scale) / zoomLevel);
             
             
-            // sw/shが画像サイズを超えないように制限
-            sw = Math.min(sw, nw);
-            sh = Math.min(sh, nh);
+            // 黒帯カット後のみ、sw/shを画像サイズに制限
+            if (hasBlackBarOffset) {
+                sw = Math.min(sw, nw);
+                sh = Math.min(sh, nh);
+            }
             
             const dx = Math.round((imagePanX * scale) / zoomLevel);
             const dy = Math.round((imagePanY * scale) / zoomLevel);
@@ -2203,14 +2234,28 @@
                     finalOutW = Math.round(outH * sourceRatio);
                 }
             } else {
-                // sw/shがcanvasより小さい場合、canvasいっぱいに拡大
+                // sw/shがcanvasより小さいか同等の場合、canvasいっぱいに拡大
+                // ただし、sw/shが画像サイズを超える場合は比率を保つ
                 const sourceRatio = sw / sh;
                 const canvasRatio = canvasW / canvasH;
                 
-                // 常にcanvasサイズに合わせる（微妙な比率の違いは無視）
-                finalOutW = canvasW;
-                finalOutH = canvasH;
+                if (sw > nw || sh > nh) {
+                    // cropBoxが画像より大きい場合（zoom < 1.0など）
+                    // outW/outHをそのまま使う（zoomに応じたサイズ）
+                    finalOutW = outW;
+                    finalOutH = outH;
+                } else {
+                    // 常にcanvasサイズに合わせる（微妙な比率の違いは無視）
+                    finalOutW = canvasW;
+                    finalOutH = canvasH;
+                }
             }
+
+            // Safariキャッシュクリア & canvasサイズをfinalOutW/Hに設定
+            canvas.width = 0;
+            canvas.height = 0;
+            canvas.width = finalOutW;
+            canvas.height = finalOutH;
 
             // sx/sy計算 - transformと同じ方向にするためdx/dyを引く
             // 黒帯カット後は、クロップ後の画像の中心を元画像座標系で計算
@@ -2226,15 +2271,15 @@
             
             console.log(`cropImage: after clamp - sx=${sx}, sy=${sy}, nw=${nw}, nh=${nh}`);
 
-            console.log(`cropImage: zoom=${zoomLevel.toFixed(2)}, sw=${sw}, sh=${sh}, sx=${sx}, sy=${sy}, canvasW=${canvasW}, canvasH=${canvasH}, finalOutW=${finalOutW}, finalOutH=${finalOutH}`);
+            console.log(`cropImage: zoom=${zoomLevel.toFixed(2)}, sw=${sw}, sh=${sh}, sx=${sx}, sy=${sy}, canvasW=${finalOutW}, canvasH=${finalOutH}, finalOutW=${finalOutW}, finalOutH=${finalOutH}`);
 
             // 背景黒で塗りつぶし（canvas全体）
             ctx.fillStyle = "#000000";
-            ctx.fillRect(0, 0, canvasW, canvasH);
+            ctx.fillRect(0, 0, finalOutW, finalOutH);
 
-            // 描画（中央配置、zoom考慮）
-            let offsetX = Math.floor((canvasW - finalOutW) / 2);
-            let offsetY = Math.floor((canvasH - finalOutH) / 2);
+            // 描画（canvasサイズ = finalOutサイズなので、offsetは0）
+            let offsetX = 0;
+            let offsetY = 0;
             
             // sx/syがマイナスの場合、調整して黒で埋める
             let drawSx = sx;
@@ -2250,25 +2295,31 @@
                 const cutLeft = -sx;
                 drawSx = 0;
                 drawSw = sw - cutLeft;
-                drawDx = Math.floor(offsetX + (cutLeft / sw) * finalOutW);
-                drawDw = Math.round((drawSw / sw) * finalOutW);
+                const ratio = drawSw / sw;
+                drawDw = Math.round(finalOutW * ratio);
+                drawDx = Math.floor(offsetX + (finalOutW - drawDw) / 2);
             }
             if (sy < 0) {
                 const cutTop = -sy;
                 drawSy = 0;
                 drawSh = sh - cutTop;
-                drawDy = Math.floor(offsetY + (cutTop / sh) * finalOutH);
-                drawDh = Math.round((drawSh / sh) * finalOutH);
+                const ratio = drawSh / sh;
+                drawDh = Math.round(finalOutH * ratio);
+                drawDy = Math.floor(offsetY + (finalOutH - drawDh) / 2);
             }
             if (sx + sw > sourceNw) {
                 const cutRight = (sx + sw) - sourceNw;
                 drawSw = sw - cutRight;
-                drawDw = Math.round((drawSw / sw) * finalOutW);
+                const ratio = drawSw / sw;
+                drawDw = Math.round(finalOutW * ratio);
+                drawDx = Math.floor(offsetX + (finalOutW - drawDw) / 2);
             }
             if (sy + sh > sourceNh) {
                 const cutBottom = (sy + sh) - sourceNh;
                 drawSh = sh - cutBottom;
-                drawDh = Math.round((drawSh / sh) * finalOutH);
+                const ratio = drawSh / sh;
+                drawDh = Math.round(finalOutH * ratio);
+                drawDy = Math.floor(offsetY + (finalOutH - drawDh) / 2);
             }
             
             console.log(`BEFORE drawImage: drawSw=${drawSw}, drawSh=${drawSh}, drawDw=${drawDw}, drawDh=${drawDh}, offsetX=${offsetX}, offsetY=${offsetY}`);
@@ -2279,10 +2330,6 @@
 
             // タイムスタンプ付きでキャッシュ回避
             preview.src = canvas.toDataURL('image/png') + '#' + new Date().getTime();
-            
-            // previewのサイズを設定
-            preview.style.width = window.baseBoxWidth + 'px';
-            preview.style.height = window.baseBoxHeight + 'px';
         }
         window.cropImage = cropImage;
 
@@ -2357,7 +2404,5 @@
     <!-- Signature -->
     <div class="signature">imok</div>
 
-<script src="https://cdn.jsdelivr.net/npm/eruda"></script>
-<script>eruda.init();</script>
 </body>
 </html>
