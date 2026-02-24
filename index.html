@@ -2114,18 +2114,19 @@
                 }
                 
                 updateCustomCropPosition();
-        cropImage(img);
-    };  // ← onload終わり
-    
-    // ↓ この2行が変更点（onloadの外）
-    selectorImage.src = '';
-    requestAnimationFrame(() => {
-        selectorImage.src = img.src;
-    });
-}  // ← 関数終わり
-
+                
+                // Auto-crop after setup is complete
+                cropImage(img);
+            }; // ← onload終わり
+            
+            // srcを一度空にしてから再セット（同じ画像でもonloadを確実に発火させる）
+            selectorImage.src = '';
+            requestAnimationFrame(() => {
+                selectorImage.src = img.src;
+            });
+        } // ← setupCropSelector関数終わり
+        
         // Crop image
-        // Crop image  
         // 画面回転時に画像サイズを調整（パン位置は保持）
         function resizeImageForOrientation() {
             if (!currentImage) return;
