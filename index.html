@@ -783,18 +783,18 @@
             <div class="aspect-ratio-selector">
                 <h3>📐 アスペクト比を選択</h3>
                 <div class="ratio-group">
-                    <button class="ratio-btn" data-ratio="2.844" data-width="2844" data-height="1000">
-                        <div class="ratio-name">2.844:1</div>
-                        <div class="ratio-desc">Ultra Wide</div>
-                    </button>
-                    <button class="ratio-btn active" data-ratio="2.35" data-width="1920" data-height="817">
-                        <div class="ratio-name">2.35:1</div>
-                        <div class="ratio-desc">Cinemascope</div>
-                    </button>
-                    <button class="ratio-btn" data-ratio="1" data-width="1080" data-height="1080">
-                        <div class="ratio-name">1:1</div>
-                        <div class="ratio-desc">Square</div>
-                    </button>
+                    <button class="ratio-btn" data-ratio="2.844" data-width="1920" data-height="675">
+    <div class="ratio-name">2.844:1</div>
+    <div class="ratio-desc">Ultra Wide</div>
+</button>
+<button class="ratio-btn active" data-ratio="2.35" data-width="1920" data-height="817">
+    <div class="ratio-name">2.35:1</div>
+    <div class="ratio-desc">Cinemascope</div>
+</button>
+<button class="ratio-btn" data-ratio="1" data-width="1920" data-height="1920">
+    <div class="ratio-name">1:1</div>
+    <div class="ratio-desc">Square</div>
+</button>
                 </div>
                 
                 <div style="margin-top: 20px; padding: 15px; background: rgba(255, 255, 255, 0.05); border-radius: 10px; border: 2px solid rgba(102, 126, 234, 0.3);">
@@ -1328,21 +1328,27 @@
     currentRatio = `${width}:${height}`;
     
     // 元画像の長辺を基準に出力サイズを決定
-    if (currentImage) {
-        const nw = currentImage.naturalWidth || currentImage.width;
-        const nh = currentImage.naturalHeight || currentImage.height;
-        if (TARGET_RATIO >= 1) {
-            TARGET_WIDTH = nw;
-            TARGET_HEIGHT = Math.round(nw / TARGET_RATIO);
-        } else {
-            TARGET_HEIGHT = nh;
-            TARGET_WIDTH = Math.round(nh * TARGET_RATIO);
-        }
+   // 元画像の長辺を基準に出力サイズを決定（最大1920px）
+const MAX_SIZE = 1920;
+if (currentImage) {
+    const nw = currentImage.naturalWidth || currentImage.width;
+    const nh = currentImage.naturalHeight || currentImage.height;
+    if (TARGET_RATIO >= 1) {
+        TARGET_WIDTH = Math.min(nw, MAX_SIZE);
+        TARGET_HEIGHT = Math.round(TARGET_WIDTH / TARGET_RATIO);
     } else {
-        // 画像がない場合のデフォルト
-        TARGET_WIDTH = Math.round(1080 * TARGET_RATIO);
-        TARGET_HEIGHT = 1080;
+        TARGET_HEIGHT = Math.min(nh, MAX_SIZE);
+        TARGET_WIDTH = Math.round(TARGET_HEIGHT * TARGET_RATIO);
     }
+} else {
+    if (TARGET_RATIO >= 1) {
+        TARGET_WIDTH = MAX_SIZE;
+        TARGET_HEIGHT = Math.round(MAX_SIZE / TARGET_RATIO);
+    } else {
+        TARGET_HEIGHT = MAX_SIZE;
+        TARGET_WIDTH = Math.round(MAX_SIZE * TARGET_RATIO);
+    }
+}
     
     croppedLabel.textContent = `クロップ後（${TARGET_WIDTH}×${TARGET_HEIGHT}）`;
     ratioInfo.textContent = `アスペクト比: ${currentRatio} (Custom)`;
