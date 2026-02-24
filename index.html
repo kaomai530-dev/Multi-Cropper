@@ -1250,31 +1250,40 @@
 
         // Ratio selection
         ratioBtns.forEach(btn => {
-            btn.addEventListener('click', () => {
-                ratioBtns.forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                
-                currentRatio = btn.dataset.ratio;
-                TARGET_WIDTH = parseInt(btn.dataset.width);
-                TARGET_HEIGHT = parseInt(btn.dataset.height);
-                TARGET_RATIO = parseFloat(btn.dataset.ratio);
-                
-                // Update labels
-                croppedLabel.textContent = `クロップ後（${TARGET_WIDTH}×${TARGET_HEIGHT}）`;
-                const ratioName = RATIOS[currentRatio].name;
-                ratioInfo.textContent = `アスペクト比: ${currentRatio}:1 (${ratioName})`;
-                
-                // Reset and recalculate
-                if (currentImage) {
-                    zoomLevel = 1;
-                    imagePanX = 0;
-                    imagePanY = 0;
-                    setupCropSelector(currentImage);
-                    cropImage(currentImage);
-                }
-            });
-        });
-
+    btn.addEventListener('click', () => {
+        ratioBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        
+        currentRatio = btn.dataset.ratio;
+        TARGET_WIDTH = parseInt(btn.dataset.width);
+        TARGET_HEIGHT = parseInt(btn.dataset.height);
+        TARGET_RATIO = parseFloat(btn.dataset.ratio);
+        
+        croppedLabel.textContent = `クロップ後（${TARGET_WIDTH}×${TARGET_HEIGHT}）`;
+        const ratioName = RATIOS[currentRatio]?.name || 'Custom';
+        ratioInfo.textContent = `アスペクト比: ${currentRatio}:1 (${ratioName})`;
+        
+        if (originalImage) {
+            zoomLevel = 1;
+            imagePanX = 0;
+            imagePanY = 0;
+            window.zoomLevel = 1;
+            window.imagePanX = 0;
+            window.imagePanY = 0;
+            
+            // 黒帯カットがONなら再検出、OFFなら元画像を使用
+            if (autoRemoveBlackBars) {
+                detectAndRemoveBlackBars(originalImage, originalImage.originalFilename);
+            } else {
+                currentImage = originalImage;
+                window.blackBarOffset = null;
+                window.originalImage = null;
+                setupCropSelector(currentImage);
+                cropImage(currentImage);
+            }
+        }
+    });
+});
         // Auto remove black bars toggle
         autoRemoveCheckbox.addEventListener('change', (e) => {
             autoRemoveBlackBars = e.target.checked;
