@@ -1612,23 +1612,23 @@
             
             // Check if a column is uniformly black
             function isColBlack(x) {
-                let blackCount = 0;
-                let totalCount = 0;
-                
-                for (let y = 0; y < canvas.height; y += 3) {
-                    const i = (y * canvas.width + x) * 4;
-                    const r = data[i];
-                    const g = data[i + 1];
-                    const b = data[i + 2];
-                    
-                    if (r <= threshold && g <= threshold && b <= threshold) {
-                        blackCount++;
-                    }
-                    totalCount++;
-                }
-                
-                return (blackCount / totalCount) >= minBlackRatio;
-            }
+    let blackCount = 0;
+    let totalCount = 0;
+    
+    for (let y = 0; y < canvas.height; y += 2) { // 3→2に変更
+        const i = (y * canvas.width + x) * 4;
+        const r = data[i];
+        const g = data[i + 1];
+        const b = data[i + 2];
+        
+        if (r <= threshold && g <= threshold && b <= threshold) {
+            blackCount++;
+        }
+        totalCount++;
+    }
+    
+    return (blackCount / totalCount) >= minBlackRatio;
+}
             
             // Find top boundary
             let top = 0;
@@ -1650,7 +1650,7 @@
             
             // Find left boundary
             let left = 0;
-            for (let x = 0; x < Math.min(canvas.width * 0.4, 300); x++) {
+            for (let x = 0; x < Math.min(canvas.width * 0.45, 500); x++) {
                 if (!isColBlack(x)) {
                     left = x;
                     break;
@@ -1659,7 +1659,7 @@
             
             // Find right boundary
             let right = canvas.width;
-            for (let x = canvas.width - 1; x >= Math.max(canvas.width * 0.6, canvas.width - 300); x--) {
+            for (let x = canvas.width - 1; x >= Math.max(canvas.width * 0.55, canvas.width - 500); x--) {
                 if (!isColBlack(x)) {
                     right = x + 1;
                     break;
@@ -2031,31 +2031,24 @@
 
         // Setup crop selector
         function setupCropSelector(img) {
-            const imgNaturalWidth = img.naturalWidth || img.width;
-            const imgNaturalHeight = img.naturalHeight || img.height;
-            
-            console.log(`setupCropSelector: naturalW=${imgNaturalWidth}, naturalH=${imgNaturalHeight}`);
-            
-            console.log('setupCropSelector: Full setup');
-            // Store natural dimensions for comparison
-            window.lastNaturalWidth = imgNaturalWidth;
-            window.lastNaturalHeight = imgNaturalHeight;
-            
-            selectorImage.src = img.src;
-            
-            selectorImage.onload = () => {
-                // Safariのキャッシュによる誤計算を防ぐため、一度リセット
-                selectorImage.style.width = 'auto';
-                selectorImage.style.height = 'auto';
-                selectorImage.style.transform = 'translate(0px, 0px) scale(1)';
-                
-                // リセット後にcontainerRectを取得（正確なサイズを得るため）
-                const containerRect = cropSelector.getBoundingClientRect();
-                
-                const nw = img.naturalWidth || img.width;
-                const nh = img.naturalHeight || img.height;
-                const imgRatio = nw / nh;
-                const TARGET_RATIO = TARGET_WIDTH / TARGET_HEIGHT;
+    const imgNaturalWidth = img.naturalWidth || img.width;
+    const imgNaturalHeight = img.naturalHeight || img.height;
+    
+    console.log(`setupCropSelector: naturalW=${imgNaturalWidth}, naturalH=${imgNaturalHeight}`);
+    console.log('setupCropSelector: Full setup');
+    window.lastNaturalWidth = imgNaturalWidth;
+    window.lastNaturalHeight = imgNaturalHeight;
+    
+    selectorImage.onload = () => {
+        selectorImage.style.width = 'auto';
+        selectorImage.style.height = 'auto';
+        selectorImage.style.transform = 'translate(0px, 0px) scale(1)';
+        
+        const containerRect = cropSelector.getBoundingClientRect();
+        const nw = img.naturalWidth || img.width;
+        const nh = img.naturalHeight || img.height;
+        const imgRatio = nw / nh;
+        const TARGET_RATIO = TARGET_WIDTH / TARGET_HEIGHT;
                 
                 // 画面に収まる表示サイズを計算
                 let displayWidth, displayHeight;
@@ -2126,6 +2119,13 @@
                 cropImage(img);
             };
         }
+
+        // ↓ この2行が変更点（onloadの外）
+    selectorImage.src = '';
+    requestAnimationFrame(() => {
+        selectorImage.src = img.src;
+    });
+}  // ← 関数終わり
 
         // Crop image
         // Crop image  
