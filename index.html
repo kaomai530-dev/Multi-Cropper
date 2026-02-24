@@ -1641,7 +1641,7 @@
             
             // Find top boundary
             let top = 0;
-            for (let y = 0; y < Math.min(canvas.height * 0.4, 300); y++) {
+            for (let y = 0; y < canvas.height * 0.4; y++) {
                 if (!isRowBlack(y)) {
                     top = y;
                     break;
@@ -1650,7 +1650,7 @@
             
             // Find bottom boundary
             let bottom = canvas.height;
-            for (let y = canvas.height - 1; y >= Math.max(canvas.height * 0.6, canvas.height - 300); y--) {
+            for (let y = canvas.height - 1; y >= canvas.height * 0.6; y--) {
                 if (!isRowBlack(y)) {
                     bottom = y + 1;
                     break;
@@ -1659,7 +1659,7 @@
             
             // Find left boundary
             let left = 0;
-            for (let x = 0; x < Math.min(canvas.width * 0.45, 500); x++) {
+            for (let x = 0; x < canvas.width * 0.45; x++) {
                 if (!isColBlack(x)) {
                     left = x;
                     break;
@@ -1668,7 +1668,7 @@
             
             // Find right boundary
             let right = canvas.width;
-            for (let x = canvas.width - 1; x >= Math.max(canvas.width * 0.55, canvas.width - 500); x--) {
+            for (let x = canvas.width - 1; x >= canvas.width * 0.55; x--) {
                 if (!isColBlack(x)) {
                     right = x + 1;
                     break;
