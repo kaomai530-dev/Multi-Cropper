@@ -2114,13 +2114,10 @@
                 }
                 
                 updateCustomCropPosition();
-                
-                // Auto-crop after setup is complete
-                cropImage(img);
-            };
-        }
-
-        // ↓ この2行が変更点（onloadの外）
+        cropImage(img);
+    };  // ← onload終わり
+    
+    // ↓ この2行が変更点（onloadの外）
     selectorImage.src = '';
     requestAnimationFrame(() => {
         selectorImage.src = img.src;
