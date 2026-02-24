@@ -1811,7 +1811,7 @@
                     
                     // Insert at correct position
                     processedImages[currentImageIndex] = {
-                       dataURL: croppedPreview.src.split('#')[0],
+                       dataURL: croppedCanvas.toDataURL('image/png'),
                         filename: filename,
                         originalFilename: currentImage?.originalFilename
                     };
@@ -1845,7 +1845,7 @@
             }
             
             processedImages.push({
-                dataURL: croppedPreview.src.split('#')[0],
+                dataURL: croppedCanvas.toDataURL('image/png'),
                 filename: filename,
                 originalFilename: currentImage?.originalFilename
             });
@@ -1929,7 +1929,7 @@
                 
                 console.log('Adding current image to processedImages with filename:', filename);
                 processedImages.push({
-                    dataURL: croppedPreview.src.split('#')[0],
+                    dataURL: croppedCanvas.toDataURL('image/png'),
                     filename: filename,
                     originalFilename: currentImage?.originalFilename
                 });
