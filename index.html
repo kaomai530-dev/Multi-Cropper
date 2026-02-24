@@ -2223,7 +2223,7 @@
             // 黒帯カット後は、クロップ後の画像サイズを基準にする
             const scaleBase = hasBlackBarOffset ? nw : window.baseImageWidth;
             let sw = Math.round((window.baseBoxWidth * scale) / zoomLevel);
-let sh = Math.round((window.baseBoxHeight * scale) / zoomLevel);
+　　　　　　　　let sh = Math.round((window.baseBoxHeight * scale) / zoomLevel);
 
 // ↓ この処理を追加：TARGET_RATIOに合わせてsw/shを修正
 const targetRatio = TARGET_WIDTH / TARGET_HEIGHT;
