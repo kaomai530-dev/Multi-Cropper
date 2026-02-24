@@ -2237,10 +2237,19 @@ if (Math.abs(sw / sh - targetRatio) > 0.01) {
             
             
             // 黒帯カット後のみ、sw/shを画像サイズに制限
-            if (hasBlackBarOffset) {
-                sw = Math.min(sw, nw);
-                sh = Math.min(sh, nh);
-            }
+           // 黒帯カット後のみ、sw/shを画像サイズに制限
+if (hasBlackBarOffset) {
+    sw = Math.min(sw, nw);
+    sh = Math.min(sh, nh);
+    
+    // 制限後も比率を維持
+    const targetRatio2 = TARGET_WIDTH / TARGET_HEIGHT;
+    if (sw / sh > targetRatio2) {
+        sw = Math.round(sh * targetRatio2);
+    } else {
+        sh = Math.round(sw / targetRatio2);
+    }
+}
             
             const dx = Math.round((imagePanX * scale) / zoomLevel);
             const dy = Math.round((imagePanY * scale) / zoomLevel);
