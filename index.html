@@ -1305,36 +1305,47 @@
 
         // Custom aspect ratio
         applyCustomRatioBtn.addEventListener('click', () => {
-            const width = parseInt(customWidthInput.value);
-            const height = parseInt(customHeightInput.value);
-            
-            if (!width || !height || width < 1 || height < 1) {
-                alert('Please enter valid width and height (positive numbers)');
-                return;
-            }
-            
-            // Deselect all preset buttons
-            ratioBtns.forEach(b => b.classList.remove('active'));
-            
-            // Set custom ratio
-            TARGET_WIDTH = width;
-            TARGET_HEIGHT = height;
-            TARGET_RATIO = width / height;
-            currentRatio = `${width}:${height}`;
-            
-            // Update labels
-            croppedLabel.textContent = `クロップ後（${TARGET_WIDTH}×${TARGET_HEIGHT}）`;
-            ratioInfo.textContent = `アスペクト比: ${currentRatio} (Custom)`;
-            
-            // Reset and recalculate
-            if (currentImage) {
-                zoomLevel = 1;
-                imagePanX = 0;
-                imagePanY = 0;
-                setupCropSelector(currentImage);
-                cropImage(currentImage);
-            }
-        });
+    const width = parseInt(customWidthInput.value);
+    const height = parseInt(customHeightInput.value);
+    
+    if (!width || !height || width < 1 || height < 1) {
+        alert('Please enter valid width and height (positive numbers)');
+        return;
+    }
+    
+    ratioBtns.forEach(b => b.classList.remove('active'));
+    
+    TARGET_RATIO = width / height;
+    currentRatio = `${width}:${height}`;
+    
+    // 元画像の長辺を基準に出力サイズを決定
+    if (currentImage) {
+        const nw = currentImage.naturalWidth || currentImage.width;
+        const nh = currentImage.naturalHeight || currentImage.height;
+        if (TARGET_RATIO >= 1) {
+            TARGET_WIDTH = nw;
+            TARGET_HEIGHT = Math.round(nw / TARGET_RATIO);
+        } else {
+            TARGET_HEIGHT = nh;
+            TARGET_WIDTH = Math.round(nh * TARGET_RATIO);
+        }
+    } else {
+        // 画像がない場合のデフォルト
+        TARGET_WIDTH = Math.round(1080 * TARGET_RATIO);
+        TARGET_HEIGHT = 1080;
+    }
+    
+    croppedLabel.textContent = `クロップ後（${TARGET_WIDTH}×${TARGET_HEIGHT}）`;
+    ratioInfo.textContent = `アスペクト比: ${currentRatio} (Custom)`;
+    
+    if (currentImage) {
+        zoomLevel = 1;
+        imagePanX = 0;
+        imagePanY = 0;
+        setupCropSelector(currentImage);
+        cropImage(currentImage);
+    }
+});
 
         // Allow Enter key to apply custom ratio
         customWidthInput.addEventListener('keypress', (e) => {
