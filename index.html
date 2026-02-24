@@ -795,6 +795,10 @@
     <div class="ratio-name">1:1</div>
     <div class="ratio-desc">Square</div>
 </button>
+<button class="ratio-btn" data-ratio="1.778" data-width="1920" data-height="1080">
+    <div class="ratio-name">16:9</div>
+    <div class="ratio-desc">Widescreen</div>
+</button>
                 </div>
                 
                 <div style="margin-top: 20px; padding: 15px; background: rgba(255, 255, 255, 0.05); border-radius: 10px; border: 2px solid rgba(102, 126, 234, 0.3);">
@@ -954,10 +958,11 @@
     <script>
         // Aspect ratio presets
         const RATIOS = {
-            '2.844': { width: 2844, height: 1000, name: 'Ultra Wide', ratio: 2.844 },
-            '2.35': { width: 1920, height: 818, name: 'Cinemascope', ratio: 2.35 },
-            '1': { width: 1080, height: 1080, name: 'Square', ratio: 1 }
-        };
+    '2.844': { width: 1920, height: 675, name: 'Ultra Wide', ratio: 2.844 },
+    '2.35': { width: 1920, height: 817, name: 'Cinemascope', ratio: 2.35 },
+    '1.778': { width: 1920, height: 1080, name: 'Widescreen', ratio: 1.778 },
+    '1': { width: 1920, height: 1920, name: 'Square', ratio: 1 }
+};
 
         let currentRatio = '2.35';
         let TARGET_WIDTH = RATIOS[currentRatio].width;
