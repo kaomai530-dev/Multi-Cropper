@@ -904,7 +904,7 @@
                 <button class="btn-primary" id="downloadBtn">
                     💾 この画像を保存
                 </button>
-                <button class="btn-secondary" id="prevBtn" style="display:none;">
+                <button class="btn-secondary" id="prevBtn" style="visibility:hidden;">
                     ⏮️ 前の画像
                 </button>
                 <button class="btn-secondary" id="nextBtn" style="display:none;">
@@ -1759,11 +1759,11 @@
     deleteCurrentBtn.style.display = 'inline-block';
     
     // Show prev button only if not on first image
-    if (currentImageIndex > 0) {
-        prevBtn.style.display = 'inline-block';
-    } else {
-        prevBtn.style.display = 'none';
-    }
+   if (currentImageIndex > 0) {
+    prevBtn.style.visibility = 'visible';
+} else {
+    prevBtn.style.visibility = 'hidden';
+}
     
     // Show next button only if not on last image
     if (currentImageIndex < imageQueue.length - 1) {
