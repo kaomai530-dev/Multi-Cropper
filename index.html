@@ -1799,9 +1799,7 @@
                 console.log('Previous button clicked');
                 
                 // Save current image before going back
-                const currentImageAlreadyProcessed = processedImages.some(img => 
-                    img.dataURL === croppedPreview.src
-                );
+                const currentImageAlreadyProcessed = processedImages.length > currentImageIndex;
                 
                 if (currentImage && croppedPreview.src && !currentImageAlreadyProcessed) {
                     let filename = 'cropped_image.png';
@@ -1813,7 +1811,7 @@
                     
                     // Insert at correct position
                     processedImages[currentImageIndex] = {
-                        dataURL: croppedPreview.src,
+                       dataURL: croppedPreview.src.split('#')[0],
                         filename: filename,
                         originalFilename: currentImage?.originalFilename
                     };
@@ -1847,7 +1845,7 @@
             }
             
             processedImages.push({
-                dataURL: croppedPreview.src,
+                dataURL: croppedPreview.src.split('#')[0],
                 filename: filename,
                 originalFilename: currentImage?.originalFilename
             });
@@ -1918,9 +1916,7 @@
         // Download all button
         downloadAllBtn.addEventListener('click', () => {
             // Check if current image needs to be added
-            const currentImageAlreadyProcessed = processedImages.some(img => 
-                img.dataURL === croppedPreview.src
-            );
+            const currentImageAlreadyProcessed = processedImages.length > currentImageIndex;
             
             if (currentImage && croppedPreview.src && !currentImageAlreadyProcessed) {
                 // Generate filename from original
@@ -1933,7 +1929,7 @@
                 
                 console.log('Adding current image to processedImages with filename:', filename);
                 processedImages.push({
-                    dataURL: croppedPreview.src,
+                    dataURL: croppedPreview.src.split('#')[0],
                     filename: filename,
                     originalFilename: currentImage?.originalFilename
                 });
@@ -2338,7 +2334,7 @@
             console.log(`drawImage: TARGET=${TARGET_WIDTH}x${TARGET_HEIGHT}, canvas=${canvasW}x${canvasH}, finalOut=${finalOutW}x${finalOutH}, draw=${drawDw}x${drawDh}, drawPos=(${drawDx},${drawDy})`);
 
             // タイムスタンプ付きでキャッシュ回避
-            preview.src = canvas.toDataURL('image/png') + '#' + new Date().getTime();
+           preview.src = canvas.toDataURL('image/png');
         }
         window.cropImage = cropImage;
 
