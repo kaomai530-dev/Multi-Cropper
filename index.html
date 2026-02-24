@@ -304,6 +304,9 @@
             flex-wrap: wrap;
             margin-top: 20px;
         }
+        .controls button {
+    min-width: 140px;
+}
 
         button {
             padding: 12px 30px;
@@ -1751,17 +1754,23 @@
         // Update batch UI
         function updateBatchUI() {
             if (imageQueue.length > 1) {
-                batchProgress.style.display = 'block';
-                nextBtn.style.display = 'inline-block';
-                downloadAllBtn.style.display = 'inline-block';
-                deleteCurrentBtn.style.display = 'inline-block';
-                
-                // Show prev button only if not on first image
-                if (currentImageIndex > 0) {
-                    prevBtn.style.display = 'inline-block';
-                } else {
-                    prevBtn.style.display = 'none';
-                }
+    batchProgress.style.display = 'block';
+    downloadAllBtn.style.display = 'inline-block';
+    deleteCurrentBtn.style.display = 'inline-block';
+    
+    // Show prev button only if not on first image
+    if (currentImageIndex > 0) {
+        prevBtn.style.display = 'inline-block';
+    } else {
+        prevBtn.style.display = 'none';
+    }
+    
+    // Show next button only if not on last image
+    if (currentImageIndex < imageQueue.length - 1) {
+        nextBtn.style.display = 'inline-block';
+    } else {
+        nextBtn.style.display = 'none';
+    }
                 
                 currentImageNum.textContent = currentImageIndex + 1;
                 totalImages.textContent = imageQueue.length;
